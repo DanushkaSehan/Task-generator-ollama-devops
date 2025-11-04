@@ -1,0 +1,19 @@
+# Maven
+backend/ai-processor/target/
+backend/task-service/target/
+*.log
+
+# Node
+frontend/ai-task-frontend/node_modules/
+frontend/ai-task-frontend/build/
+frontend/ai-task-frontend/dist/
+frontend/ai-task-frontend/.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
