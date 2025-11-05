@@ -52,7 +52,6 @@ jobs:
       # 6️⃣ Build React Frontend
       - name: Build React Frontend
         run: |
-          chmod +x frontend/ai-task-frontend/mvnw
           cd frontend/ai-task-frontend
           npm ci
           npm run build
