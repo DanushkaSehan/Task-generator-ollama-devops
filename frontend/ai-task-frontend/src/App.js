@@ -2,20 +2,25 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
-import "./App.css";
-import TaskItem from "./TaskItem";
+import './App.css';
+import TaskItem from './TaskItem';
 
 let stompClient = null;
 
 function App() {
+  // ❌ Remove localStorage loading — start empty
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
 
+  // ❌ Remove localStorage saving — no persistence
   useEffect(() => {
     fetchTasks();
     connectWebSocket();
-    return () => stompClient && stompClient.deactivate();
+
+    return () => {
+      if (stompClient) stompClient.deactivate();
+    };
   }, []);
 
   const fetchTasks = async () => {
@@ -23,7 +28,8 @@ function App() {
       const res = await axios.get("/api/tasks");
       setTasks(res.data);
     } catch (e) {
-      console.error("❌ Error fetching tasks:", e);
+      console.error("Error fetching tasks:", e);
+      setTasks([]); // reset if error
     }
   };
 
@@ -36,6 +42,8 @@ function App() {
         console.log("✅ Connected to WebSocket");
         stompClient.subscribe("/topic/task-updates", (message) => {
           const updatedTask = JSON.parse(message.body);
+          console.log("📩 Received:", updatedTask);
+
           setTasks((prev) => {
             const exists = prev.find((t) => t.id === updatedTask.id);
             if (exists) {
@@ -74,6 +82,7 @@ function App() {
     }
   };
 
+  // When deleting, remove from current view only
   const deleteTask = (id) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
@@ -81,6 +90,7 @@ function App() {
   return (
     <div className="app-container">
       <h1 className="main-title">🧠 AI Task Assistant</h1>
+
       <div className="input-section">
         <input
           placeholder="Enter a task (e.g., Build RTMP server)"
@@ -92,6 +102,7 @@ function App() {
           ➕ Add Task
         </button>
       </div>
+
       <ul className="task-list">
         {tasks.map((t) => (
           <TaskItem

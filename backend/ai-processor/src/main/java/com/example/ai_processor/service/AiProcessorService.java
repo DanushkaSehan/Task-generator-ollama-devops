@@ -27,7 +27,7 @@ public void listen(Task task) {
     try {
         String prompt = """
         You are an AI task planner.
-        Break down this main task into 4–6 smaller subtasks.
+        Break down this main task into 4–6 subtasks.
         Each subtask should be short, action-oriented, and start with a verb.
         Return the subtasks as a numbered list.
 
