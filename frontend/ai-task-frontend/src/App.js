@@ -33,7 +33,7 @@ function App() {
   const fetchTasks = async () => {
     // ... (unchanged)
     try {
-      const res = await axios.get("http://localhost:8080/api/tasks");
+      const res = await axios.get("/api/tasks");
       setTasks(res.data);
     } catch (e) {
       console.error("Error fetching tasks:", e);
@@ -42,7 +42,7 @@ function App() {
 
   const connectWebSocket = () => {
     // ... (unchanged)
-    const ws = new SockJS("http://localhost:8090/ws");
+    const ws = new SockJS("/ws");
     stompClient = new Client({
       webSocketFactory: () => ws,
       reconnectDelay: 5000,
@@ -74,7 +74,7 @@ function App() {
     // ... (unchanged)
     if (!title.trim()) return;
     try {
-      await axios.post("http://localhost:8080/api/tasks", { title });
+      await axios.post("/api/tasks", { title });
       setLoadingId(title);
       setTitle("");
     } catch (e) {
@@ -86,7 +86,7 @@ function App() {
     // ... (unchanged)
     setLoadingId(taskTitle);
     try {
-      await axios.post("http://localhost:8080/api/tasks", { title: taskTitle });
+      await axios.post("/api/tasks", { title: taskTitle });
     } catch (e) {
       console.error("Error regenerating task:", e);
     }
