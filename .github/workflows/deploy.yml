@@ -52,7 +52,7 @@ jobs:
       # 6️⃣ Build React Frontend
       - name: Build React Frontend
         run: |
-          cd frontend/task-frontend
+          cd frontend/ai-task-frontend
           npm install
           npm run build
         shell: bash
