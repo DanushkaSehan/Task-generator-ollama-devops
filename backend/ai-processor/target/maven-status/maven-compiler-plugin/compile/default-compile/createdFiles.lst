@@ -1,0 +1,5 @@
+com\example\ai_processor\AiProcessorApplication.class
+com\example\ai_processor\config\WebSocketConfig.class
+com\example\ai_processor\config\KafkaConsumerConfig.class
+com\example\ai_processor\service\AiProcessorService.class
+com\example\ai_processor\model\Task.class
