@@ -1,44 +1,62 @@
-name: Deploy AI Task Assistant
+name: 🚀 Build & Deploy AI Task Assistant to GCP VM
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build-and-deploy-vm:
-    name: Build & Deploy to GCP VM
+    name: 🖥️ Build & Deploy to GCP VM (Service Account Auth)
     runs-on: ubuntu-latest
 
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_VM_INSTANCE_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+      GCP_VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+
     steps:
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
 
-      - name: Setup Java
+      # 2️⃣ Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 3️⃣ Setup gcloud CLI
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          install_components: "gke-gcloud-auth-plugin"
+
+      # 4️⃣ Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Setup gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-      - name: Build Spring Boot JARs
+      # 5️⃣ Build Spring Boot JARs
+      - name: Build Spring Boot apps
         run: |
-          cd task-service && ./mvnw clean package -DskipTests
+          cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
+        shell: bash
 
+      # 6️⃣ Build React Frontend
       - name: Build React Frontend
         run: |
-          cd task-frontend
+          cd frontend/task-frontend
           npm ci
           npm run build
+        shell: bash
 
-      - name: Upload Artifacts to VM
+      # 7️⃣ Copy build artifacts to VM
+      - name: Upload artifacts to GCP VM
         run: |
           gcloud compute scp \
             backend/task-service/target/task-service.jar \
@@ -46,14 +64,14 @@ jobs:
             --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/opt/ai-task-assistant/
 
           gcloud compute scp --recurse \
-            frontend/ai-task-frontend/build/* \
+            frontend/task-frontend/build/* \
             --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/var/www/html/ai-frontend/
+        shell: bash
 
-      - name: Restart Spring Boot Services on VM
+      # 8️⃣ Restart VM services
+      - name: Restart Spring Boot services on VM
         run: |
           gcloud compute ssh $GCP_VM_INSTANCE_NAME \
             --zone=$GCP_VM_ZONE \
             --command="sudo systemctl restart task-service && sudo systemctl restart ai-processor && sudo systemctl reload nginx"
-        env:
-          GCP_VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-          GCP_VM_INSTANCE_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+        shell: bash
