@@ -79,18 +79,17 @@ jobs:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           echo "📦 Copying Spring Boot JARs..."
-          DEST="${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/"
-          echo "👉 Uploading to $DEST"
+          
           gcloud compute scp \
             backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
-            "$DEST" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
+            --zone=$VM_ZONE --project=$GCP_PROJECT_ID
 
-          echo "📦 Copying React build..."
-          DEST2="${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/"
-          echo "👉 Uploading frontend to $DEST2"
-          gcloud compute scp --recurse frontend/ai-task-frontend/build/* \
-            "$DEST2" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
+          gcloud compute scp \
+            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
+            --zone=$VM_ZONE --project=$GCP_PROJECT_ID
+
 
       # 9️⃣ Restart Spring Boot services on VM
       - name: Restart Spring Boot services on VM
