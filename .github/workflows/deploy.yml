@@ -59,19 +59,24 @@ jobs:
 
       # 7️⃣ Copy build artifacts to VM
       - name: Upload artifacts to GCP VM
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           echo "📦 Copying Spring Boot JARs..."
           gcloud compute scp \
             backend/task-service/target/task-service.jar \
             backend/ai-processor/target/ai-processor.jar \
-            ${{ secrets.VM_USERNAME }}@${{ secrets.GCP_VM_INSTANCE_NAME }}:/opt/ai-task-assistant/ \
-            --zone=${{ secrets.GCP_VM_ZONE }} --project=${{ secrets.GCP_PROJECT_ID }}
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ \
+            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID}
 
           echo "📦 Copying React build..."
           gcloud compute scp --recurse \
             frontend/task-frontend/build/* \
-            ${{ secrets.VM_USERNAME }}@${{ secrets.GCP_VM_INSTANCE_NAME }}:/var/www/html/ai-frontend/ \
-            --zone=${{ secrets.GCP_VM_ZONE }} --project=${{ secrets.GCP_PROJECT_ID }}
+            ${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/ \
+            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID}
 
 
 
