@@ -89,7 +89,7 @@ jobs:
           echo "📦 Copying React build..."
           DEST2="${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/"
           echo "👉 Uploading frontend to $DEST2"
-          gcloud compute scp --recurse frontend/task-frontend/build/* \
+          gcloud compute scp --recurse frontend/ai-task-frontend/build/* \
             "$DEST2" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
 
       # 9️⃣ Restart Spring Boot services on VM
