@@ -1,17 +1,6 @@
-import React from 'react';
+import React from "react";
 
-// You will also need to pass the deleteTask and regenerateTask functions as props
-const TaskItem = ({ task, loadingId, regenerateTask, deleteTask }) => {
-  // Check if the current task is the one being loaded/regenerated
-  const isLoading = loadingId === task.title;
-
-  // Function to format the suggestion
-  const formatSuggestion = (suggestion) => {
-    if (!suggestion) return "Processing AI suggestion...";
-    // Replace numbered list items with newlines for better readability
-    return suggestion.replaceAll(/(\d+\.\s)/g, "\n$1").trim();
-  };
-
+function TaskItem({ task, loadingId, regenerateTask, deleteTask }) {
   return (
     <li className="task-item">
       <div className="task-header">
@@ -20,7 +9,7 @@ const TaskItem = ({ task, loadingId, regenerateTask, deleteTask }) => {
           <button
             onClick={() => regenerateTask(task.title)}
             className="action-button regenerate-button"
-            disabled={isLoading} // Disable button while loading
+            disabled={loadingId === task.title}
           >
             🔁
           </button>
@@ -32,14 +21,19 @@ const TaskItem = ({ task, loadingId, regenerateTask, deleteTask }) => {
           </button>
         </div>
       </div>
-
-      <p className={`ai-suggestion ${task.aiSuggestion ? '' : 'placeholder'}`}>
-        {isLoading
+      <p
+        className={`ai-suggestion ${
+          task.aiSuggestion ? "" : "placeholder"
+        }`}
+      >
+        {loadingId === task.title
           ? "⚙️ Generating AI plan..."
-          : formatSuggestion(task.aiSuggestion)}
+          : task.aiSuggestion
+          ? task.aiSuggestion.replaceAll(/(\d+\.\s)/g, "\n$1").trim()
+          : "Processing AI suggestion..."}
       </p>
     </li>
   );
-};
+}
 
 export default TaskItem;
