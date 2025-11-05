@@ -50,45 +50,12 @@ jobs:
         shell: bash
 
       # 6️⃣ Build React Frontend
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Locate frontend directory
-        id: locate-frontend
-        shell: bash
-        run: |
-          set -e
-          DEFAULT="frontend/ai-task-frontend"
-          if [ -f "$DEFAULT/package.json" ]; then
-            echo "dir=$DEFAULT" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          CANDIDATE=$(find . -maxdepth 3 -type f -name package.json | grep -vi node_modules | grep -E '/(frontend|client|web|ui)/' | head -n1 || true)
-          if [ -n "$CANDIDATE" ]; then
-            DIR=$(dirname "$CANDIDATE")
-            echo "Detected frontend dir: $DIR"
-            echo "dir=$DIR" >> $GITHUB_OUTPUT
-          else
-            echo "No frontend package.json found. Set the correct path or add the frontend to the repo." >&2
-            exit 1
-          fi
-      
-      - name: Install frontend deps
-        working-directory: ${{ steps.locate-frontend.outputs.dir }}
-        shell: bash
-        run: |
-          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-      
       - name: Build React Frontend
-        working-directory: ${{ steps.locate-frontend.outputs.dir }}
+        run: |
+          cd frontend/ai-task-frontend
+          npm install
+          npm run build
         shell: bash
-        run: npm run build
 
       # 7️⃣ Copy build artifacts to VM
       - name: Upload artifacts to GCP VM
@@ -99,7 +66,7 @@ jobs:
             --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/opt/ai-task-assistant/
 
           gcloud compute scp --recurse \
-            ${{ steps.locate-frontend.outputs.dir }}/build/* \
+            frontend/ai-task-frontend/build/* \
             --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/var/www/html/ai-frontend/
         shell: bash
 
