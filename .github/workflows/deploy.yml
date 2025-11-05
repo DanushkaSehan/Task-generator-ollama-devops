@@ -66,17 +66,21 @@ jobs:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           echo "📦 Copying Spring Boot JARs..."
-          gcloud compute scp \
-            backend/task-service/target/task-service.jar \
+          
+          DEST="${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/"
+          echo "👉 Uploading to $DEST"
+          
+          gcloud compute scp backend/task-service/target/task-service.jar \
             backend/ai-processor/target/ai-processor.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ \
-            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID}
+            "$DEST" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
 
           echo "📦 Copying React build..."
-          gcloud compute scp --recurse \
-            frontend/task-frontend/build/* \
-            ${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/ \
-            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID}
+          DEST2="${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/"
+          echo "👉 Uploading frontend to $DEST2"
+          
+          gcloud compute scp --recurse frontend/task-frontend/build/* \
+            "$DEST2" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
+
 
 
 
