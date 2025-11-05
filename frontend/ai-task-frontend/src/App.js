@@ -2,36 +2,21 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
-import './App.css';
-import TaskItem from './TaskItem';
+import "./App.css";
+import TaskItem from "./TaskItem";
 
 let stompClient = null;
 
 function App() {
-  // ❌ Remove localStorage loading — start empty
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
 
-  // ❌ Remove localStorage saving — no persistence
   useEffect(() => {
-    fetchTasks();
+    // ✅ Only connect WebSocket, don't fetch old tasks
     connectWebSocket();
-
-    return () => {
-      if (stompClient) stompClient.deactivate();
-    };
+    return () => stompClient && stompClient.deactivate();
   }, []);
-
-  const fetchTasks = async () => {
-    try {
-      const res = await axios.get("/api/tasks");
-      setTasks(res.data);
-    } catch (e) {
-      console.error("Error fetching tasks:", e);
-      setTasks([]); // reset if error
-    }
-  };
 
   const connectWebSocket = () => {
     const ws = new SockJS("/ws");
@@ -42,7 +27,7 @@ function App() {
         console.log("✅ Connected to WebSocket");
         stompClient.subscribe("/topic/task-updates", (message) => {
           const updatedTask = JSON.parse(message.body);
-          console.log("📩 Received:", updatedTask);
+          console.log("📩 Received task update:", updatedTask);
 
           setTasks((prev) => {
             const exists = prev.find((t) => t.id === updatedTask.id);
@@ -55,6 +40,7 @@ function App() {
             }
             return [...prev, updatedTask];
           });
+
           setLoadingId(null);
         });
       },
@@ -69,7 +55,7 @@ function App() {
       setLoadingId(title);
       setTitle("");
     } catch (e) {
-      console.error("Error creating task:", e);
+      console.error("❌ Error creating task:", e);
     }
   };
 
@@ -78,11 +64,11 @@ function App() {
     try {
       await axios.post("/api/tasks", { title: taskTitle });
     } catch (e) {
-      console.error("Error regenerating task:", e);
+      console.error("❌ Error regenerating task:", e);
     }
   };
 
-  // When deleting, remove from current view only
+  // ✅ Delete task only from current session
   const deleteTask = (id) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
