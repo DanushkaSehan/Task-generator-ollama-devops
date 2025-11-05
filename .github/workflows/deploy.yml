@@ -50,10 +50,20 @@ jobs:
         shell: bash
 
       # 6️⃣ Build React Frontend
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
       - name: Build React Frontend
         run: |
           cd frontend/ai-task-frontend
-          npm ci
+          # Use npm ci when a lockfile exists, otherwise fall back to npm install
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci
+          else
+            npm install
+          fi
           npm run build
         shell: bash
 
