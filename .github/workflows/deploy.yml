@@ -52,8 +52,8 @@ jobs:
       # 6️⃣ Build React Frontend
       - name: Build React Frontend
         run: |
-          chmod +x frontend/task-frontend/mvnw
-          cd frontend/task-frontend
+          chmod +x frontend/ai-task-frontend/mvnw
+          cd frontend/ai-task-frontend
           npm ci
           npm run build
         shell: bash
@@ -67,7 +67,7 @@ jobs:
             --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/opt/ai-task-assistant/
 
           gcloud compute scp --recurse \
-            frontend/task-frontend/build/* \
+            frontend/ai-task-frontend/build/* \
             --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/var/www/html/ai-frontend/
         shell: bash
 
