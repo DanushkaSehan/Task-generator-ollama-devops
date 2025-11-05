@@ -50,7 +50,7 @@ private String callOllama(String prompt) throws Exception {
     String escapedPrompt = prompt.replace("\n", "\\n").replace("\"", "\\\"");
 
     String json = """
-        {"model": "lama3.2:1b", "prompt": "%s"}
+        {"model": "llama3.2:1b", "prompt": "%s"}
         """.formatted(escapedPrompt);
 
     HttpRequest request = HttpRequest.newBuilder()
