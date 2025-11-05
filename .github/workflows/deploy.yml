@@ -2,8 +2,7 @@ name: Deploy AI Task Assistant
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build-and-deploy-vm:
@@ -11,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -19,6 +18,12 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Build Spring Boot JARs
         run: |
@@ -31,62 +36,22 @@ jobs:
           npm ci
           npm run build
 
-      - name: Copy Artifacts to VM
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: |
-            backend/task-service/target/task-service.jar
-            backend/ai-processor/target/ai-processor.jar
-            frontend/ai-task-frontend/build/**
-          target: /opt/ai-task-assistant/
+      - name: Upload Artifacts to VM
+        run: |
+          gcloud compute scp \
+            backend/task-service/target/task-service.jar \
+            backend/ai-processor/target/ai-processor.jar \
+            --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/opt/ai-task-assistant/
 
-      - name: Restart VM Services
-        uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            sudo systemctl restart task-service
-            sudo systemctl restart ai-processor
-            sudo cp -r /opt/ai-task-assistant/task-frontend/build/* /var/www/html/ai-frontend/
-            sudo systemctl reload nginx
+          gcloud compute scp --recurse \
+            frontend/ai-task-frontend/build/* \
+            --zone=$GCP_VM_ZONE $GCP_VM_INSTANCE_NAME:/var/www/html/ai-frontend/
 
-  # build-and-deploy-gke:
-  #   name: Build & Deploy to GKE
-  #   runs-on: ubuntu-latest
-  #   needs: build-and-deploy-vm
-
-  #   steps:
-  #     - name: Checkout Code
-  #       uses: actions/checkout@v4
-
-  #     - name: Setup gcloud
-  #       uses: google-github-actions/setup-gcloud@v2
-  #       with:
-  #         service_account_key: ${{ secrets.GCP_SA_KEY }}
-  #         project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-  #     - name: Configure Docker for Artifact Registry
-  #       run: |
-  #         gcloud auth configure-docker "${{ secrets.GCP_PROJECT_ID }}-docker.pkg.dev"
-
-  #     - name: Build and Push Docker Images
-  #       run: |
-  #         docker build -t "${{ secrets.GCP_PROJECT_ID }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-task-repo/task-service:latest" ./task-service
-  #         docker push "${{ secrets.GCP_PROJECT_ID }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-task-repo/task-service:latest"
-  #         docker build -t "${{ secrets.GCP_PROJECT_ID }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-task-repo/ai-processor:latest" ./ai-processor
-  #         docker push "${{ secrets.GCP_PROJECT_ID }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/ai-task-repo/ai-processor:latest"
-
-  #     - name: Get GKE Credentials
-  #       run: |
-  #         gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER }} --zone ${{ secrets.GKE_ZONE }} --project ${{ secrets.GCP_PROJECT_ID }}
-
-  #     - name: Deploy to GKE
-  #       run: |
-  #         kubectl apply -f k8s/
-  #         kubectl rollout restart deployment/task-service
-  #         kubectl rollout restart deployment/ai-processor
+      - name: Restart Spring Boot Services on VM
+        run: |
+          gcloud compute ssh $GCP_VM_INSTANCE_NAME \
+            --zone=$GCP_VM_ZONE \
+            --command="sudo systemctl restart task-service && sudo systemctl restart ai-processor && sudo systemctl reload nginx"
+        env:
+          GCP_VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_VM_INSTANCE_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
