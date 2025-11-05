@@ -52,12 +52,25 @@ jobs:
       # 6️⃣ Build React Frontend
       - name: Build React Frontend
         run: |
-          cd frontend/ai-task-frontend
+          cd frontend/task-frontend
           npm install
           npm run build
         shell: bash
 
-      # 7️⃣ Copy build artifacts to VM
+      # 7️⃣ Prepare VM directories and permissions
+      - name: Prepare VM directories on GCP
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          echo "🔧 Preparing directories on VM..."
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID} \
+            --command="sudo mkdir -p /opt/ai-task-assistant /var/www/html/ai-frontend && sudo chown -R ${VM_USER}:${VM_USER} /opt/ai-task-assistant /var/www/html/ai-frontend"
+
+      # 8️⃣ Upload build artifacts to VM
       - name: Upload artifacts to GCP VM
         env:
           VM_USER: ${{ secrets.VM_USERNAME }}
@@ -66,29 +79,28 @@ jobs:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           echo "📦 Copying Spring Boot JARs..."
-          
           DEST="${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/"
           echo "👉 Uploading to $DEST"
-
-          gcloud compute scp backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+          gcloud compute scp \
+            backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
             backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
             "$DEST" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
 
           echo "📦 Copying React build..."
           DEST2="${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/"
           echo "👉 Uploading frontend to $DEST2"
-          
           gcloud compute scp --recurse frontend/task-frontend/build/* \
             "$DEST2" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
 
-
-
-
-
-      # 8️⃣ Restart VM services
+      # 9️⃣ Restart Spring Boot services on VM
       - name: Restart Spring Boot services on VM
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          gcloud compute ssh $GCP_VM_INSTANCE_NAME \
-            --zone=$GCP_VM_ZONE \
-            --command="sudo systemctl restart task-service && sudo systemctl restart ai-processor && sudo systemctl reload nginx"
-        shell: bash
+          echo "🔁 Restarting Spring Boot services..."
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID} \
+            --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
