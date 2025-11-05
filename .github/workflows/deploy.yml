@@ -69,9 +69,9 @@ jobs:
           
           DEST="${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/"
           echo "👉 Uploading to $DEST"
-          
-          gcloud compute scp backend/task-service/target/task-service.jar \
-            backend/ai-processor/target/ai-processor.jar \
+
+          gcloud compute scp backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
             "$DEST" --zone="$VM_ZONE" --project="$GCP_PROJECT_ID"
 
           echo "📦 Copying React build..."
