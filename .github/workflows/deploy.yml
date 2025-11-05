@@ -40,14 +40,14 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # 5️⃣ Build Spring Boot JARs
-      - name: Build Spring Boot apps
-        run: |
-          chmod +x backend/task-service/mvnw
-          chmod +x backend/ai-processor/mvnw
-          cd backend/task-service && ./mvnw clean package -DskipTests
-          cd ../ai-processor && ./mvnw clean package -DskipTests
-        shell: bash
+      # # 5️⃣ Build Spring Boot JARs
+      # - name: Build Spring Boot apps
+      #   run: |
+      #     chmod +x backend/task-service/mvnw
+      #     chmod +x backend/ai-processor/mvnw
+      #     cd backend/task-service && ./mvnw clean package -DskipTests
+      #     cd ../ai-processor && ./mvnw clean package -DskipTests
+      #   shell: bash
 
       # 6️⃣ Build React Frontend
       - name: Build React Frontend
