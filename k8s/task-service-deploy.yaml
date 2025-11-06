@@ -14,14 +14,22 @@ spec:
         app: task-service
     spec:
       containers:
-        - name: task-service
-          image: LOCATION-docker.pkg.dev/PROJECT_ID/danushka-ar/task-service:latest
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 8080
-          env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: "prod"
+      - name: task-service
+        image: us-central1-docker.pkg.dev/dev-ops-475910/danushka-ar/task-service:latest
+        ports:
+          - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service

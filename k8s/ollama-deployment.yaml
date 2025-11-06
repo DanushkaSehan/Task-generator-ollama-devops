@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: ai-task
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      initContainers:
+      - name: preload-models
+        image: curlimages/curl:latest
+        command: ["sh", "-c"]
+        args:
+          - |
+            echo "⏳ Waiting for Ollama to be ready..."
+            until curl -s http://localhost:11434/api/tags >/dev/null 2>&1; do
+              sleep 3
+            done
+            echo "✅ Ollama is up! Pulling model llama3.2:1b ..."
+            curl -X POST http://localhost:11434/api/pull -d '{"name": "llama3.2:1b"}'
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0:11434"
+        - name: OLLAMA_MODE
+          value: "cpu"
+        - name: OLLAMA_NUM_THREADS
+          value: "2"
+        # Wait until the main container starts (uses same network)
+        networkMode: "container:ollama"
+
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 11434
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0:11434"
+        - name: OLLAMA_MODE
+          value: "cpu"
+        - name: OLLAMA_NUM_THREADS
+          value: "2"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+        readinessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/tags
+            port: 11434
+          initialDelaySeconds: 20
+          periodSeconds: 20
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: ai-task
+spec:
+  selector:
+    app: ollama
+  ports:
+    - name: http
+      port: 11434
+      targetPort: 11434
+      protocol: TCP
+  type: ClusterIP
