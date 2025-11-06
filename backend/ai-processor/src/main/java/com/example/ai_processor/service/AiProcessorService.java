@@ -93,15 +93,13 @@
 package com.example.ai_processor.service;
 
 import com.example.ai_processor.model.Task;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.*;
 
@@ -110,7 +108,10 @@ public class AiProcessorService {
     private final SimpMessagingTemplate messagingTemplate;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    private static final String GROQ_API_KEY = "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";
+ 
+    @Value("${groq.api.key}")
+    private String groqApiKey;
+    
     private static final String GROQ_MODEL = "llama3-8b-8192";
     private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
 
@@ -124,6 +125,14 @@ public class AiProcessorService {
 public void listen(Task task) {
     System.out.println(" Received task from Kafka: " + task.getTitle());
 
+    //  CRITICAL CHECK: Ensure the key was injected successfully
+    if (groqApiKey == null || groqApiKey.isEmpty()) {
+        System.err.println("FATAL: Groq API Key is not set! Check environment variable or configuration.");
+        task.setAiSuggestion("Error: AI service misconfigured. API Key missing.");
+        messagingTemplate.convertAndSend("/topic/task-updates", task);
+        return;
+    }
+
     try {
         String prompt = """
         You are an AI task planner.
@@ -134,7 +143,6 @@ public void listen(Task task) {
         Main Task: %s
         """.formatted(task.getTitle());
 
-        // Note: Renamed method internally to reflect Groq usage
         String suggestion = callGroq(prompt); 
         System.out.println(" AI response:\n" + suggestion);
 
@@ -146,7 +154,6 @@ public void listen(Task task) {
     }
 }
 
-// Renamed from callOllama for clarity, now uses Groq API
 private String callGroq(String prompt) throws Exception {
     
     // 1. Construct the Groq (OpenAI Chat Completions) JSON payload
@@ -166,8 +173,8 @@ private String callGroq(String prompt) throws Exception {
             .uri(GROQ_URI)
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
-            // 3. Add the Authorization header using the API Key
-            .header("Authorization", "Bearer " + GROQ_API_KEY) 
+            // 3. Use the injected key from the field
+            .header("Authorization", "Bearer " + groqApiKey) 
             .build();
 
     // 4. Send the request and read the full response body

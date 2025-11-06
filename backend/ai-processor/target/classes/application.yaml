@@ -1,5 +1,9 @@
 spring:
   kafka:
     bootstrap-servers: 34.63.78.54:9092
+
+groq:
+  api:
+    key: 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
 server:
   port: 8090
