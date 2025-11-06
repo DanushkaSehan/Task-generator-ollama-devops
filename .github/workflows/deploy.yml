@@ -31,7 +31,7 @@ jobs:
   # JOB 1: Build All Applications
   # -----------------------------------------------------------------
   build:
-    name:  Build Java, React, and Docker Images
+    name: 🏗️ Build All Artifacts
     runs-on: ubuntu-latest
     
     steps:
@@ -51,10 +51,12 @@ jobs:
           chmod +x backend/ai-processor/mvnw
           
           echo "Building Task Service..."
-          cd backend/task-service && ./mvnw clean package -DskipTests
+          # Run build in a subshell to avoid changing directory permanently
+          (cd backend/task-service && ./mvnw clean package -DskipTests)
           
           echo "Building AI Processor..."
-          cd ../ai-processor && ./mvnw clean package -DskipTests
+          # Run build in a subshell
+          (cd backend/ai-processor && ./mvnw clean package -DskipTests)
         shell: bash
 
       # --- React Build ---
@@ -128,7 +130,7 @@ jobs:
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Prepare VM directories on GCP
         run: |
@@ -187,7 +189,7 @@ jobs:
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "gke-gcloud-auth-plugin"
 
       - name: Get GKE cluster credentials
