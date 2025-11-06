@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: ai-frontend
-          image: LOCATION-docker.pkg.dev/PROJECT_ID/ai-task-repo/ai-frontend:latest
+          image: us-central1-docker.pkg.dev/dev-ops-475910/danushka-ar/ai-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
