@@ -1,9 +1,103 @@
+// package com.example.ai_processor.service;
+
+// import com.example.ai_processor.model.Task;
+// import org.springframework.kafka.annotation.KafkaListener;
+// import org.springframework.messaging.simp.SimpMessagingTemplate;
+// import org.springframework.stereotype.Service;
+
+// import java.io.BufferedReader;
+// import java.io.InputStream;
+// import java.io.InputStreamReader;
+// import java.net.URI;
+// import java.net.http.*;
+
+// @Service
+// public class AiProcessorService {
+//     private final SimpMessagingTemplate messagingTemplate;
+//     private final HttpClient httpClient = HttpClient.newHttpClient();
+
+//     public AiProcessorService(SimpMessagingTemplate messagingTemplate) {
+//         this.messagingTemplate = messagingTemplate;
+//     }
+
+// @KafkaListener(topics = "task-events", groupId = "ai-processor")
+// public void listen(Task task) {
+//     System.out.println(" Received task from Kafka: " + task.getTitle());
+
+//     try {
+//         String prompt = """
+//         You are an AI task planner.
+//         Break down this main task into 4–6 subtasks.
+//         Each subtask should be short, action-oriented, and start with a verb.
+//         Return the subtasks as a numbered list.
+
+//         Main Task: %s
+//         """.formatted(task.getTitle());
+
+//         String suggestion = callOllama(prompt);
+//         System.out.println(" AI response:\n" + suggestion);
+
+//         task.setAiSuggestion(suggestion);
+//         messagingTemplate.convertAndSend("/topic/task-updates", task);
+//         System.out.println(" Sent update to WebSocket for task " + task.getId());
+//     } catch (Exception e) {
+//         e.printStackTrace();
+//     }
+// }
+
+// private String callOllama(String prompt) throws Exception {
+//     // Escape newlines for valid JSON
+//     String escapedPrompt = prompt.replace("\n", "\\n").replace("\"", "\\\"");
+
+//     String json = """
+//         {"model": "llama3.2:1b", "prompt": "%s"}
+//         """.formatted(escapedPrompt);
+
+//     HttpRequest request = HttpRequest.newBuilder()
+//             // .uri(URI.create("http://localhost:11434/api/generate"))
+//             .uri(URI.create("http://ollama:11434/api/generate"))
+//             .POST(HttpRequest.BodyPublishers.ofString(json))
+//             .header("Content-Type", "application/json")
+//             .build();
+
+//     HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+
+//     StringBuilder fullResponse = new StringBuilder();
+//     java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\"response\"\\s*:\\s*\"(.*?)\"");
+
+//     try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body()))) {
+//         String line;
+//         while ((line = reader.readLine()) != null) {
+//             System.out.println("🔹 Ollama Stream: " + line);
+//             java.util.regex.Matcher matcher = pattern.matcher(line);
+//             while (matcher.find()) {
+//                 String text = matcher.group(1)
+//                         .replace("\\n", "\n")
+//                         .replace("\\\"", "\"");
+//                 fullResponse.append(text);
+//             }
+//         }
+//     }
+
+//     String result = fullResponse.toString().trim();
+
+//     if (result.isEmpty()) {
+//         System.out.println(" Empty response received from Ollama.");
+//         result = " No AI response generated. Try again or check Ollama logs.";
+//     }
+
+//     return result;
+// }
+// }
+
 package com.example.ai_processor.service;
 
 import com.example.ai_processor.model.Task;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -15,6 +109,12 @@ import java.net.http.*;
 public class AiProcessorService {
     private final SimpMessagingTemplate messagingTemplate;
     private final HttpClient httpClient = HttpClient.newHttpClient();
+
+    private static final String GROQ_API_KEY = "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";
+    private static final String GROQ_MODEL = "llama3-8b-8192";
+    private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public AiProcessorService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
@@ -34,7 +134,8 @@ public void listen(Task task) {
         Main Task: %s
         """.formatted(task.getTitle());
 
-        String suggestion = callOllama(prompt);
+        // Note: Renamed method internally to reflect Groq usage
+        String suggestion = callGroq(prompt); 
         System.out.println(" AI response:\n" + suggestion);
 
         task.setAiSuggestion(suggestion);
@@ -45,51 +146,53 @@ public void listen(Task task) {
     }
 }
 
-private String callOllama(String prompt) throws Exception {
-    // Escape newlines for valid JSON
-    String escapedPrompt = prompt.replace("\n", "\\n").replace("\"", "\\\"");
+// Renamed from callOllama for clarity, now uses Groq API
+private String callGroq(String prompt) throws Exception {
+    
+    // 1. Construct the Groq (OpenAI Chat Completions) JSON payload
+    String json = String.format("""
+        {
+          "model": "%s",
+          "messages": [
+            { "role": "user", "content": "%s" }
+          ],
+          "temperature": 0.5,
+          "max_tokens": 512
+        }
+        """, GROQ_MODEL, prompt.replace("\"", "\\\"").replace("\n", " ")); // Simple string escaping
 
-    String json = """
-        {"model": "llama3.2:1b", "prompt": "%s"}
-        """.formatted(escapedPrompt);
-
+    // 2. Build the HTTP Request
     HttpRequest request = HttpRequest.newBuilder()
-            // .uri(URI.create("http://localhost:11434/api/generate"))
-            .uri(URI.create("http://ollama:11434/api/generate"))
+            .uri(GROQ_URI)
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
+            // 3. Add the Authorization header using the API Key
+            .header("Authorization", "Bearer " + GROQ_API_KEY) 
             .build();
 
-    HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+    // 4. Send the request and read the full response body
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-    StringBuilder fullResponse = new StringBuilder();
-    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\"response\"\\s*:\\s*\"(.*?)\"");
-
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(response.body()))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-            System.out.println("🔹 Ollama Stream: " + line);
-            java.util.regex.Matcher matcher = pattern.matcher(line);
-            while (matcher.find()) {
-                String text = matcher.group(1)
-                        .replace("\\n", "\n")
-                        .replace("\\\"", "\"");
-                fullResponse.append(text);
-            }
-        }
+    if (response.statusCode() != 200) {
+        System.err.println("Groq API Error: " + response.body());
+        return "Error: Failed to get response from Groq API (HTTP " + response.statusCode() + ")";
     }
 
-    String result = fullResponse.toString().trim();
+    // 5. Parse the JSON response for the final text content
+    JsonNode rootNode = objectMapper.readTree(response.body());
+    JsonNode contentNode = rootNode
+        .path("choices")
+        .path(0)
+        .path("message")
+        .path("content");
+
+    String result = contentNode.asText();
 
     if (result.isEmpty()) {
-        System.out.println(" Empty response received from Ollama.");
-        result = " No AI response generated. Try again or check Ollama logs.";
+        System.out.println(" Empty response received from Groq.");
+        result = " No AI response generated. Try again or check Groq/Processor logs.";
     }
 
-    return result;
+    return result.trim();
 }
-
-
-
-
 }
