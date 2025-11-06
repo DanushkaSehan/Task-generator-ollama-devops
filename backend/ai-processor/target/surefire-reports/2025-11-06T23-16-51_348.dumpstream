@@ -1,4 +1,4 @@
-# Created at 2025-11-06T21:58:04.004
+# Created at 2025-11-06T23:16:51.457
 Boot Manifest-JAR contains absolute paths in classpath 'D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\ai-processor\target\test-classes'
 Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
 'other' has different root
