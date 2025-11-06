@@ -1,5 +1,0 @@
-# Created at 2025-11-05T15:35:05.821
-Boot Manifest-JAR contains absolute paths in classpath 'E:\Projects\devops_intern_final_assignment\Task-generator-ollama-devops\backend\ai-processor\target\test-classes'
-Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-'other' has different root
-

@@ -15,24 +15,35 @@ spec:
     spec:
       containers:
         - name: ai-processor
-          image: LOCATION-docker.pkg.dev/PROJECT_ID/danushka-ar/ai-processor:latest
+          image: us-central1-docker.pkg.dev/dev-ops-475910/danushka-ar/ai-processor:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8090   # if your ai-processor exposes websockets at 8090
-          env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: "prod"
+            - containerPort: 8090
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8090
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 30
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: ai-processor
   namespace: ai-task
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   selector:
     app: ai-processor
   ports:
-    - protocol: TCP
-      port: 8090
+    - port: 8090
       targetPort: 8090
   type: ClusterIP
