@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import "./App.css";
 import TaskItem from "./TaskItem";
-
 
 let stompClient = null;
 
@@ -23,45 +22,43 @@ function App() {
   }
   return id;
 });
-  
 
-  const connectWebSocket = useCallback(() => {
-  const ws = new SockJS("/ws");
-  stompClient = new Client({
-    webSocketFactory: () => ws,
-    reconnectDelay: 5000,
-    onConnect: () => {
-      console.log("✅ Connected to WebSocket");
 
-      stompClient.subscribe(`/topic/task-updates/${sessionId}`, (message) => {
-        const updatedTask = JSON.parse(message.body);
-        console.log("📩 Received task update:", updatedTask);
+  useEffect(() => {
+    // ✅ Only connect WebSocket, don't fetch old tasks
+    connectWebSocket();
+    return () => stompClient && stompClient.deactivate();
+  }, []);
 
-        setTasks((prev) => {
-          const exists = prev.find((t) => t.id === updatedTask.id);
-          if (exists) {
-            return prev.map((t) =>
-              t.id === updatedTask.id
-                ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
-                : t
-            );
-          }
-          return [...prev, updatedTask];
+  const connectWebSocket = () => {
+    const ws = new SockJS("/ws");
+    stompClient = new Client({
+      webSocketFactory: () => ws,
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log("✅ Connected to WebSocket");
+        stompClient.subscribe(`/topic/task-updates/${sessionId}`, (message) => {
+          const updatedTask = JSON.parse(message.body);
+          console.log("📩 Received task update:", updatedTask);
+
+          setTasks((prev) => {
+            const exists = prev.find((t) => t.id === updatedTask.id);
+            if (exists) {
+              return prev.map((t) =>
+                t.id === updatedTask.id
+                  ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
+                  : t
+              );
+            }
+            return [...prev, updatedTask];
+          });
+
+          setLoadingId(null);
         });
-
-        setLoadingId(null);
-      });
-    },
-  });
-  stompClient.activate();
-}, [sessionId]); 
-
-
-useEffect(() => {
-  connectWebSocket();
-  return () => stompClient && stompClient.deactivate();
-}, [connectWebSocket]);
-
+      },
+    });
+    stompClient.activate();
+  };
 
   const createTask = async () => {
     if (!title.trim()) return;
