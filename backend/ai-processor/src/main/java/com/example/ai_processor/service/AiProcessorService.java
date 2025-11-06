@@ -54,7 +54,8 @@ private String callOllama(String prompt) throws Exception {
         """.formatted(escapedPrompt);
 
     HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:11434/api/generate"))
+            // .uri(URI.create("http://localhost:11434/api/generate"))
+            .uri(URI.create("http://34.41.0.216:11434/api/generate"))
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
             .build();
