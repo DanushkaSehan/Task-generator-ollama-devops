@@ -7,22 +7,10 @@ import TaskItem from "./TaskItem";
 
 let stompClient = null;
 
-
-
 function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
-
-  const [sessionId] = useState(() => {
-  let id = localStorage.getItem("sessionId");
-  if (!id) {
-    id = crypto.randomUUID(); // generate new ID if none exists
-    localStorage.setItem("sessionId", id);
-  }
-  return id;
-});
-
 
   useEffect(() => {
     // ✅ Only connect WebSocket, don't fetch old tasks
@@ -37,7 +25,7 @@ function App() {
       reconnectDelay: 5000,
       onConnect: () => {
         console.log("✅ Connected to WebSocket");
-        stompClient.subscribe(`/topic/task-updates/${sessionId}`, (message) => {
+        stompClient.subscribe("/topic/task-updates", (message) => {
           const updatedTask = JSON.parse(message.body);
           console.log("📩 Received task update:", updatedTask);
 
@@ -63,7 +51,7 @@ function App() {
   const createTask = async () => {
     if (!title.trim()) return;
     try {
-      await axios.post("/api/tasks", { title, sessionId });
+      await axios.post("/api/tasks", { title });
       setLoadingId(title);
       setTitle("");
     } catch (e) {
@@ -74,7 +62,7 @@ function App() {
   const regenerateTask = async (taskTitle) => {
     setLoadingId(taskTitle);
     try {
-      await axios.post("/api/tasks", { title: taskTitle, sessionId });
+      await axios.post("/api/tasks", { title: taskTitle });
     } catch (e) {
       console.error("❌ Error regenerating task:", e);
     }
