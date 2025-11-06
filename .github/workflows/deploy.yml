@@ -1,193 +1,193 @@
-# name: 🚀 Build & Deploy AI Task Assistant to GCP VM
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   build-and-deploy-vm:
-#     name: 🖥️ Build & Deploy to GCP VM (Service Account Auth)
-#     runs-on: ubuntu-latest
-
-#     env:
-#       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-#       GCP_VM_INSTANCE_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
-#       GCP_VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-
-#     steps:
-#       # 1️⃣ Checkout
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
-
-#       # 2️⃣ Authenticate to Google Cloud
-#       - name: Authenticate to Google Cloud
-#         uses: google-github-actions/auth@v2
-#         with:
-#           credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-#       # 3️⃣ Setup gcloud CLI
-#       - name: Setup gcloud CLI
-#         uses: google-github-actions/setup-gcloud@v2
-#         with:
-#           project_id: ${{ secrets.GCP_PROJECT_ID }}
-#           install_components: "gke-gcloud-auth-plugin"
-
-#       # 4️⃣ Setup Java
-#       - name: Setup Java 17
-#         uses: actions/setup-java@v4
-#         with:
-#           distribution: temurin
-#           java-version: 17
-
-#       # 5️⃣ Build Spring Boot JARs
-#       # - name: Build Spring Boot apps
-#       #   run: |
-#       #     chmod +x backend/task-service/mvnw
-#       #     chmod +x backend/ai-processor/mvnw
-#       #     cd backend/task-service && ./mvnw clean package -DskipTests
-#       #     cd ../ai-processor && ./mvnw clean package -DskipTests
-#       #   shell: bash
-
-#       # 6️⃣ Build React Frontend
-#       - name: Build React Frontend
-#         run: |
-#           cd frontend/ai-task-frontend
-#           npm install
-#           npm run build
-#         shell: bash
-
-#       # 7️⃣ Prepare VM directories and permissions
-#       - name: Prepare VM directories on GCP
-#         env:
-#           VM_USER: ${{ secrets.VM_USERNAME }}
-#           VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
-#           VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-#           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-#         run: |
-#           echo "🔧 Preparing directories on VM..."
-#           gcloud compute ssh ${VM_USER}@${VM_NAME} \
-#             --zone=${VM_ZONE} --project=${GCP_PROJECT_ID} \
-#             --command="sudo mkdir -p /opt/ai-task-assistant /var/www/html/ai-frontend && sudo chown -R ${VM_USER}:${VM_USER} /opt/ai-task-assistant /var/www/html/ai-frontend"
-
-#       # 8️⃣ Upload build artifacts to VM
-#       - name: Upload artifacts to GCP VM
-#         env:
-#           VM_USER: ${{ secrets.VM_USERNAME }}
-#           VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
-#           VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-#           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-#         run: |
-#           echo "📦 Copying Spring Boot JARs..."
-          
-#           gcloud compute scp \
-#             backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-#             ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
-#             --zone=$VM_ZONE --project=$GCP_PROJECT_ID
-
-#           gcloud compute scp \
-#             backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
-#             ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
-#             --zone=$VM_ZONE --project=$GCP_PROJECT_ID
-
-
-#       # 9️⃣ Restart Spring Boot services on VM
-#       - name: Restart Spring Boot services on VM
-#         env:
-#           VM_USER: ${{ secrets.VM_USERNAME }}
-#           VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
-#           VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-#           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-#         run: |
-#           echo "🔁 Restarting Spring Boot services..."
-#           gcloud compute ssh ${VM_USER}@${VM_NAME} \
-#             --zone=${VM_ZONE} --project=${GCP_PROJECT_ID} \
-#             --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
-
-
-
-
-name: Build & Deploy to GKE
+name: 🚀 Build & Deploy AI Task Assistant to GCP VM
 
 on:
   push:
-    branches: [ main ]
-
-env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1
-  REPO: danushka-ar
-  IMAGE_TAG: latest
-  CLUSTER: ${{ secrets.CLUSTER_NAME }}
-  CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+    branches:
+      - main
 
 jobs:
-  build-and-deploy:
+  build-and-deploy-vm:
+    name: 🖥️ Build & Deploy to GCP VM (Service Account Auth)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_VM_INSTANCE_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+      GCP_VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
 
     steps:
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Authenticate to GCP using service account key
+      # 2️⃣ Authenticate to Google Cloud
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v1
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # Install gcloud CLI and plugin
-      - name: Install Google Cloud SDK + GKE Auth Plugin
-        run: |
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-            | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-          sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-            | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-          sudo apt-get update -y
-          sudo apt-get install -y google-cloud-sdk google-cloud-sdk-gke-gcloud-auth-plugin
-          gcloud --version
-          gke-gcloud-auth-plugin --version
-
-      - name: Configure Docker for Artifact Registry
+      # 3️⃣ Setup gcloud CLI
+      - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+          install_components: "gke-gcloud-auth-plugin"
 
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+      # 4️⃣ Setup Java
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
 
-      # ---- Build & Push Docker Images ----
-      - name: Build and push Task Service image
-        run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
+      # 5️⃣ Build Spring Boot JARs
+      # - name: Build Spring Boot apps
+      #   run: |
+      #     chmod +x backend/task-service/mvnw
+      #     chmod +x backend/ai-processor/mvnw
+      #     cd backend/task-service && ./mvnw clean package -DskipTests
+      #     cd ../ai-processor && ./mvnw clean package -DskipTests
+      #   shell: bash
 
-      - name: Build and push AI Processor image
+      # 6️⃣ Build React Frontend
+      - name: Build React Frontend
         run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
+          cd frontend/ai-task-frontend
+          npm install
+          npm run build
+        shell: bash
 
-      - name: Build and push Frontend image
+      # 7️⃣ Prepare VM directories and permissions
+      - name: Prepare VM directories on GCP
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
+          echo "🔧 Preparing directories on VM..."
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID} \
+            --command="sudo mkdir -p /opt/ai-task-assistant /var/www/html/ai-frontend && sudo chown -R ${VM_USER}:${VM_USER} /opt/ai-task-assistant /var/www/html/ai-frontend"
 
-      # ---- GKE Deployment ----
-      - name: Get GKE cluster credentials
+      # 8️⃣ Upload build artifacts to VM
+      - name: Upload artifacts to GCP VM
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
-          gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
-
-      - name: Deploy to GKE
-        run: |
-          # Replace placeholders in manifests
-          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml || true
+          echo "📦 Copying Spring Boot JARs..."
           
-          # Apply Kubernetes manifests
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/task-service-deploy.yaml
-          kubectl apply -f k8s/ai-processor-deploy.yaml
-          kubectl apply -f k8s/frontend-deploy.yaml
-          kubectl apply -f k8s/ingress.yaml
+          gcloud compute scp \
+            backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
+            --zone=$VM_ZONE --project=$GCP_PROJECT_ID
+
+          gcloud compute scp \
+            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
+            --zone=$VM_ZONE --project=$GCP_PROJECT_ID
+
+
+      # 9️⃣ Restart Spring Boot services on VM
+      - name: Restart Spring Boot services on VM
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          echo "🔁 Restarting Spring Boot services..."
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${GCP_PROJECT_ID} \
+            --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
+
+
+
+
+# name: Build & Deploy to GKE
+
+# on:
+#   push:
+#     branches: [ main ]
+
+# env:
+#   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+#   REGION: us-central1
+#   REPO: danushka-ar
+#   IMAGE_TAG: latest
+#   CLUSTER: ${{ secrets.CLUSTER_NAME }}
+#   CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+
+#       # Authenticate to GCP using service account key
+#       - name: Authenticate to Google Cloud
+#         uses: google-github-actions/auth@v1
+#         with:
+#           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+#       # Install gcloud CLI and plugin
+#       - name: Install Google Cloud SDK + GKE Auth Plugin
+#         run: |
+#           echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+#             | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+#           sudo apt-get install -y apt-transport-https ca-certificates gnupg curl
+#           curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+#             | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+#           sudo apt-get update -y
+#           sudo apt-get install -y google-cloud-sdk google-cloud-sdk-gke-gcloud-auth-plugin
+#           gcloud --version
+#           gke-gcloud-auth-plugin --version
+
+#       - name: Configure Docker for Artifact Registry
+#         uses: google-github-actions/setup-gcloud@v2
+#         with:
+#           project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+#       - name: Configure Docker authentication
+#         run: |
+#           gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+#       # ---- Build & Push Docker Images ----
+#       - name: Build and push Task Service image
+#         run: |
+#           docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+#           docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
+
+#       - name: Build and push AI Processor image
+#         run: |
+#           docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+#           docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
+
+#       - name: Build and push Frontend image
+#         run: |
+#           docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+#           docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
+
+#       # ---- GKE Deployment ----
+#       - name: Get GKE cluster credentials
+#         run: |
+#           gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
+
+#       - name: Deploy to GKE
+#         run: |
+#           # Replace placeholders in manifests
+#           sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml || true
+          
+#           # Apply Kubernetes manifests
+#           kubectl apply -f k8s/namespace.yaml
+#           kubectl apply -f k8s/task-service-deploy.yaml
+#           kubectl apply -f k8s/ai-processor-deploy.yaml
+#           kubectl apply -f k8s/frontend-deploy.yaml
+#           kubectl apply -f k8s/ingress.yaml
