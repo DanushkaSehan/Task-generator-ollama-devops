@@ -23,13 +23,7 @@ function App() {
   }
   return id;
 });
-
-
-useEffect(() => {
-  connectWebSocket();
-  return () => stompClient && stompClient.deactivate();
-}, [connectWebSocket]);
-
+  
 
   const connectWebSocket = useCallback(() => {
   const ws = new SockJS("/ws");
@@ -61,6 +55,12 @@ useEffect(() => {
   });
   stompClient.activate();
 }, [sessionId]); 
+
+
+useEffect(() => {
+  connectWebSocket();
+  return () => stompClient && stompClient.deactivate();
+}, [connectWebSocket]);
 
 
   const createTask = async () => {
