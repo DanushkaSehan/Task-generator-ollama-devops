@@ -25,11 +25,11 @@ function App() {
 });
 
 
-  useEffect(() => {
-    // ✅ Only connect WebSocket, don't fetch old tasks
-    connectWebSocket();
-    return () => stompClient && stompClient.deactivate();
-  }, []);
+useEffect(() => {
+  connectWebSocket();
+  return () => stompClient && stompClient.deactivate();
+}, [connectWebSocket]);
+
 
   const connectWebSocket = useCallback(() => {
   const ws = new SockJS("/ws");
