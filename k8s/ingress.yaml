@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-task-ingress
+  namespace: ai-task
+  annotations:
+    kubernetes.io/ingress.class: "gce"                 # use GKE ingress
+    networking.gke.io/managed-certificates: ""          # add a cert name if using managed certs
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: task-service
+                port:
+                  number: 8080
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-processor
+                port:
+                  number: 8090

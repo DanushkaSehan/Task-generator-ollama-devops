@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-processor
+  namespace: ai-task
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-processor
+  template:
+    metadata:
+      labels:
+        app: ai-processor
+    spec:
+      containers:
+        - name: ai-processor
+          image: LOCATION-docker.pkg.dev/PROJECT_ID/danushka-ar/ai-processor:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8090   # if your ai-processor exposes websockets at 8090
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-processor
+  namespace: ai-task
+spec:
+  selector:
+    app: ai-processor
+  ports:
+    - protocol: TCP
+      port: 8090
+      targetPort: 8090
+  type: ClusterIP
