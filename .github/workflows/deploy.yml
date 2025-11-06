@@ -1,4 +1,4 @@
-name: 🚀 Build & Deploy AI Task Assistant
+name: 🚀 Build & Deploy AI Task Assistant (Spring Boot + React) to GKE & VM
 
 on:
   push:
@@ -6,12 +6,18 @@ on:
       - main
 
 env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
   REPO: danushka-ar
   IMAGE_TAG: latest
+  CLUSTER: ${{ secrets.CLUSTER_NAME }}
+  CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+  VM_USER: ${{ secrets.VM_USERNAME }}
+  VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+  VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
 
 jobs:
-  build-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -32,7 +38,7 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "gke-gcloud-auth-plugin"
 
-      # 4️⃣ Setup Java (for building Spring Boot)
+      # 4️⃣ Setup Java
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -40,12 +46,13 @@ jobs:
           java-version: 17
 
       # 5️⃣ Build Spring Boot JARs
-      - name: Build Spring Boot Backend Packages
+      - name: Build Spring Boot JARs
         run: |
           chmod +x backend/task-service/mvnw
           chmod +x backend/ai-processor/mvnw
           cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
+        shell: bash
 
       # 6️⃣ Build React Frontend
       - name: Build React Frontend
@@ -53,75 +60,60 @@ jobs:
           cd frontend/ai-task-frontend
           npm install
           npm run build
+        shell: bash
 
       # 7️⃣ Configure Docker authentication for Artifact Registry
-      - name: Configure Docker Authentication
+      - name: Configure Docker authentication
         run: |
           gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
       # 8️⃣ Build & Push Docker Images
-      - name: Build and Push Docker Images
+      - name: Build and push Docker images
         run: |
-          docker build -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-          docker push ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/task-service:${IMAGE_TAG}
+          echo "🧱 Building and pushing backend images..."
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
 
-          docker build -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-          docker push ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-processor:${IMAGE_TAG}
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
 
-          docker build -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-          docker push ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-frontend:${IMAGE_TAG}
+          echo "🧱 Building and pushing frontend image..."
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
 
-      # 9️⃣ Deploy — choose target environment
-      - name: Choose Deployment Target
-        id: deploy_target
+      # 9️⃣ Deploy to GKE
+      - name: Get GKE credentials
         run: |
-          if [ "${{ secrets.DEPLOY_TARGET }}" = "VM" ]; then
-            echo "target=vm" >> $GITHUB_OUTPUT
-          else
-            echo "target=gke" >> $GITHUB_OUTPUT
-          fi
+          gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
 
-      # 🔟 Deploy to GCP VM (if selected)
-      - name: Deploy to GCP VM
-        if: steps.deploy_target.outputs.target == 'vm'
-        env:
-          VM_USER: ${{ secrets.VM_USERNAME }}
-          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
-          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      - name: Deploy to GKE
         run: |
-          echo "🚀 Deploying to GCP VM..."
-          gcloud compute ssh ${VM_USER}@${VM_NAME} \
-            --zone=${VM_ZONE} --project=${PROJECT_ID} \
-            --command="sudo mkdir -p /opt/ai-task-assistant && sudo chown -R ${VM_USER}:${VM_USER} /opt/ai-task-assistant"
+          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/ai-frontend -n ai-task || true
+          kubectl rollout status deployment/task-service -n ai-task || true
+          kubectl rollout status deployment/ai-processor -n ai-task || true
 
+      # 🔟 Also Deploy JARs to VM 
+      - name: Upload JARs to GCP VM
+        if: success()
+        run: |
+          echo "📦 Uploading JARs to VM..."
           gcloud compute scp \
             backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
             --zone=$VM_ZONE --project=$PROJECT_ID
 
           gcloud compute scp \
             backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
             --zone=$VM_ZONE --project=$PROJECT_ID
 
+      # 11️⃣ Restart services on VM
+      - name: Restart VM Services
+        if: success()
+        run: |
+          echo "🔁 Restarting Spring Boot services..."
           gcloud compute ssh ${VM_USER}@${VM_NAME} \
             --zone=${VM_ZONE} --project=${PROJECT_ID} \
             --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
-
-      # 1️⃣1️⃣ Deploy to GKE (if selected)
-      - name: Deploy to GKE
-        if: steps.deploy_target.outputs.target == 'gke'
-        env:
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          CLUSTER: ${{ secrets.CLUSTER_NAME }}
-          CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
-        run: |
-          echo "🚀 Deploying to GKE..."
-          gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
-
-          # Replace image placeholders
-          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
-
-          # Apply manifests
-          kubectl apply -f k8s/
