@@ -146,27 +146,27 @@ public void listen(Task task) {
     }
 }
 
-// Renamed from callOllama for clarity, now uses Groq API
+
 private String callGroq(String prompt) throws Exception {
     
-    // 1. Construct the Groq (OpenAI Chat Completions) JSON payload
-    String json = String.format("""
-        {
-          "model": "%s",
-          "messages": [
-            { "role": "user", "content": "%s" }
-          ],
-          "temperature": 0.5,
-          "max_tokens": 512
-        }
-        """, GROQ_MODEL, prompt.replace("\"", "\\\"").replace("\n", " ")); // Simple string escaping
+    // 1. Define the Groq payload structure using a Map
+    java.util.Map<String, Object> payload = java.util.Map.of(
+        "model", GROQ_MODEL,
+        "messages", java.util.List.of(
+            java.util.Map.of("role", "user", "content", prompt)
+        ),
+        "temperature", 0.5,
+        "max_tokens", 512
+    );
 
-    // 2. Build the HTTP Request
+    // 2. Use ObjectMapper to convert the structured map into a correctly escaped JSON string
+    String json = objectMapper.writeValueAsString(payload);
+    
+    // 3. Build the HTTP Request
     HttpRequest request = HttpRequest.newBuilder()
             .uri(GROQ_URI)
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
-            // 3. Add the Authorization header using the API Key
             .header("Authorization", "Bearer " + GROQ_API_KEY) 
             .build();
 
@@ -195,4 +195,6 @@ private String callGroq(String prompt) throws Exception {
 
     return result.trim();
 }
+
+
 }
