@@ -1,212 +1,127 @@
-name: 🚀 Build & Deploy AI Task Assistant (VM & GKE)
+name: 🚀 Build & Deploy AI Task Assistant
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
-# -----------------------------------------------------------------
-# Environment Variables
-# -----------------------------------------------------------------
 env:
-  # GCP / GKE Config
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
   REPO: danushka-ar
   IMAGE_TAG: latest
-  CLUSTER: ${{ secrets.CLUSTER_NAME }}
-  CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
-
-  # VM Config
-  VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
-  VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
-  VM_USER: ${{ secrets.VM_USERNAME }}
-  
-  # Paths
-  TASK_SERVICE_JAR_PATH: backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar
-  AI_PROCESSOR_JAR_PATH: backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar
-  FRONTEND_BUILD_PATH: frontend/ai-task-frontend/build
 
 jobs:
-  # -----------------------------------------------------------------
-  # JOB 1: Build All Applications
-  # -----------------------------------------------------------------
-  build:
-    name: 🏗️ Build All Artifacts
+  build-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Java Build ---
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Build Spring Boot apps (Task Service & AI Processor)
-        run: |
-          chmod +x backend/task-service/mvnw
-          chmod +x backend/ai-processor/mvnw
-          
-          echo "Building Task Service..."
-          # Run build in a subshell to avoid changing directory permanently
-          (cd backend/task-service && ./mvnw clean package -DskipTests)
-          
-          echo "Building AI Processor..."
-          # Run build in a subshell
-          (cd backend/ai-processor && ./mvnw clean package -DskipTests)
-        shell: bash
-
-      # --- React Build ---
-      - name: Build React Frontend
-        run: |
-          cd frontend/ai-task-frontend
-          npm install
-          npm run build
-        shell: bash
-        
-      # --- Docker Build & Push (Moved here for efficiency) ---
+      # 2️⃣ Authenticate to Google Cloud
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Configure Docker for Artifact Registry
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-      
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
-
-      - name: Build and push Task Service image
-        run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
-
-      - name: Build and push AI Processor image
-        run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
-
-      - name: Build and push Frontend image
-        run: |
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
-
-      # --- Upload Artifacts for VM Job ---
-      - name: Archive artifacts for VM Deployment
-        uses: actions/upload-artifact@v4
-        with:
-          name: vm-artifacts
-          path: |
-            ${{ env.TASK_SERVICE_JAR_PATH }}
-            ${{ env.AI_PROCESSOR_JAR_PATH }}
-            ${{ env.FRONTEND_BUILD_PATH }}
-
-  # -----------------------------------------------------------------
-  # JOB 2: Deploy to GCP VM
-  # -----------------------------------------------------------------
-  deploy-to-vm:
-    name: 🖥️ Deploy to GCP VM
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: vm-artifacts
-          path: ./artifacts # This creates ./artifacts/[full-path-from-upload]
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-      - name: Prepare VM directories on GCP
-        run: |
-          echo "🔧 Preparing directories on VM..."
-          gcloud compute ssh ${VM_USER}@${VM_NAME} \
-            --zone=${VM_ZONE} --project=${PROJECT_ID} \
-            --command="sudo mkdir -p /opt/ai-task-assistant/task-service /opt/ai-task-assistant/ai-processor /var/www/html/ai-frontend && sudo chown -R ${VM_USER}:${VM_USER} /opt/ai-task-assistant /var/www/html/ai-frontend"
-
-      - name: Upload artifacts to GCP VM
-        run: |
-          echo "📦 Copying artifacts..."
-          
-          # 1. ✅ Copy JARs - Using the CORRECT full path from the artifact download
-          gcloud compute scp \
-            ./artifacts/backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
-            --zone=$VM_ZONE --project=$PROJECT_ID
-
-          gcloud compute scp \
-            ./artifacts/backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
-            --zone=$VM_ZONE --project=$PROJECT_ID
-            
-          # 2. ✅ Copy Frontend Build - Using the CORRECT full path
-          gcloud compute scp --recurse \
-            ./artifacts/frontend/ai-task-frontend/build/* \
-            ${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend \
-            --zone=$VM_ZONE --project=$PROJECT_ID
-
-      - name: Restart Spring Boot services on VM
-        run: |
-          echo "🔁 Restarting Spring Boot services..."
-          gcloud compute ssh ${VM_USER}@${VM_NAME} \
-            --zone=${VM_ZONE} --project=${PROJECT_ID} \
-            --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
-
-  # -----------------------------------------------------------------
-  # JOB 3: Deploy to GKE
-  # -----------------------------------------------------------------
-  deploy-to-gke:
-    name: ☁️ Deploy to GKE
-    needs: build # Depends on the 'build' job being complete
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
+      # 3️⃣ Setup gcloud CLI
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           install_components: "gke-gcloud-auth-plugin"
 
-      - name: Get GKE cluster credentials
+      # 4️⃣ Setup Java (for building Spring Boot)
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # 5️⃣ Build Spring Boot JARs
+      - name: Build Spring Boot Backend Packages
         run: |
+          chmod +x backend/task-service/mvnw
+          chmod +x backend/ai-processor/mvnw
+          cd backend/task-service && ./mvnw clean package -DskipTests
+          cd ../ai-processor && ./mvnw clean package -DskipTests
+
+      # 6️⃣ Build React Frontend
+      - name: Build React Frontend
+        run: |
+          cd frontend/ai-task-frontend
+          npm install
+          npm run build
+
+      # 7️⃣ Configure Docker authentication for Artifact Registry
+      - name: Configure Docker Authentication
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      # 8️⃣ Build & Push Docker Images
+      - name: Build and Push Docker Images
+        run: |
+          docker build -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+          docker push ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/task-service:${IMAGE_TAG}
+
+          docker build -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+          docker push ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-processor:${IMAGE_TAG}
+
+          docker build -t ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+          docker push ${REGION}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${REPO}/ai-frontend:${IMAGE_TAG}
+
+      # 9️⃣ Deploy — choose target environment
+      - name: Choose Deployment Target
+        id: deploy_target
+        run: |
+          if [ "${{ secrets.DEPLOY_TARGET }}" = "VM" ]; then
+            echo "target=vm" >> $GITHUB_OUTPUT
+          else
+            echo "target=gke" >> $GITHUB_OUTPUT
+          fi
+
+      # 🔟 Deploy to GCP VM (if selected)
+      - name: Deploy to GCP VM
+        if: steps.deploy_target.outputs.target == 'vm'
+        env:
+          VM_USER: ${{ secrets.VM_USERNAME }}
+          VM_NAME: ${{ secrets.GCP_VM_INSTANCE_NAME }}
+          VM_ZONE: ${{ secrets.GCP_VM_ZONE }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          echo "🚀 Deploying to GCP VM..."
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${PROJECT_ID} \
+            --command="sudo mkdir -p /opt/ai-task-assistant && sudo chown -R ${VM_USER}:${VM_USER} /opt/ai-task-assistant"
+
+          gcloud compute scp \
+            backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service.jar \
+            --zone=$VM_ZONE --project=$PROJECT_ID
+
+          gcloud compute scp \
+            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor.jar \
+            --zone=$VM_ZONE --project=$PROJECT_ID
+
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${PROJECT_ID} \
+            --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
+
+      # 1️⃣1️⃣ Deploy to GKE (if selected)
+      - name: Deploy to GKE
+        if: steps.deploy_target.outputs.target == 'gke'
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          CLUSTER: ${{ secrets.CLUSTER_NAME }}
+          CLUSTER_ZONE: ${{ secrets.CLUSTER_ZONE }}
+        run: |
+          echo "🚀 Deploying to GKE..."
           gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
 
-      - name: Deploy to GKE (with Secure Key Injection)
-        env:
-          GROQ_API_KEY_SECRET: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          # 1. Replace image placeholders in manifests
-          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml || true
-          
-          # 2. ✅ SECURELY INJECT GROQ API KEY
-          # This replaces the placeholder __GROQ_API_KEY_PLACEHOLDER__ in your ai-processor-deploy.yaml
-          # with the secret value from GitHub Actions.
-          sed -i "s|__GROQ_API_KEY_PLACEHOLDER__|${GROQ_API_KEY_SECRET}|g" k8s/ai-processor-deploy.yaml
+          # Replace image placeholders
+          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
 
-          # 3. Apply Kubernetes manifests
+          # Apply manifests
           kubectl apply -f k8s/
