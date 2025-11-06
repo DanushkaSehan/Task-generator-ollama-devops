@@ -1,5 +1,6 @@
 D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\task-service\src\main\java\com\example\task_service\config\KafkaConfig.java
 D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\task-service\src\main\java\com\example\task_service\config\KafkaProducerConfig.java
+D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\task-service\src\main\java\com\example\task_service\controller\HealthController.java
 D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\task-service\src\main\java\com\example\task_service\controller\TaskController.java
 D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\task-service\src\main\java\com\example\task_service\model\Task.java
 D:\Danushka\projects\devops\ollama_assignment\Task-generator-ollama-devops\backend\task-service\src\main\java\com\example\task_service\service\TaskService.java

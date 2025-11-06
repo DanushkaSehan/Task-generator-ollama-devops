@@ -1,4 +1,5 @@
 com\example\task_service\config\KafkaProducerConfig.class
+com\example\task_service\controller\HealthController.class
 com\example\task_service\controller\TaskController.class
 com\example\task_service\config\KafkaConfig.class
 com\example\task_service\model\Task.class
