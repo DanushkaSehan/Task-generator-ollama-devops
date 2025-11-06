@@ -98,6 +98,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -110,7 +111,8 @@ public class AiProcessorService {
     private final SimpMessagingTemplate messagingTemplate;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    private static final String GROQ_API_KEY = "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";
+    @Value("${GROQ_API_KEY}")
+    private String groqApiKey;
     private static final String GROQ_MODEL = "llama-3.1-8b-instant";
     private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
 
@@ -167,7 +169,7 @@ private String callGroq(String prompt) throws Exception {
             .uri(GROQ_URI)
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer " + GROQ_API_KEY) 
+            .header("Authorization", "Bearer " + groqApiKey) 
             .build();
 
     // 4. Send the request and read the full response body
