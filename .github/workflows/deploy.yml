@@ -166,7 +166,7 @@ jobs:
 
       - name: Deploy to GKE
         run: |
-          # Replace placeholder LOCATION/PROJECT_ID in k8s manifests before applying
+          sudo apt-get update && sudo apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
           sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml || true
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/task-service-deploy.yaml
