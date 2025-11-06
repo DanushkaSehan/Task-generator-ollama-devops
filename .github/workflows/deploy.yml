@@ -186,8 +186,4 @@ jobs:
           sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml || true
           
           # Apply Kubernetes manifests
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/task-service-deploy.yaml
-          kubectl apply -f k8s/ai-processor-deploy.yaml
-          kubectl apply -f k8s/frontend-deploy.yaml
-          kubectl apply -f k8s/ingress.yaml
+          kubectl apply -f k8s/
