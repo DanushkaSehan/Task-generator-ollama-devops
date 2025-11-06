@@ -204,9 +204,9 @@ jobs:
           sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml || true
           
           # 2. ✅ SECURELY INJECT GROQ API KEY
-          # This replaces the placeholder __GROQ_API_KEY_PLACEHOLDER__ in your ai-processor.yaml
+          # This replaces the placeholder __GROQ_API_KEY_PLACEHOLDER__ in your ai-processor-deploy.yaml
           # with the secret value from GitHub Actions.
-          sed -i "s|__GROQ_API_KEY_PLACEHOLDER__|${GROQ_API_KEY_SECRET}|g" k8s/ai-processor.yaml
+          sed -i "s|__GROQ_API_KEY_PLACEHOLDER__|${GROQ_API_KEY_SECRET}|g" k8s/ai-processor-deploy.yaml
 
           # 3. Apply Kubernetes manifests
           kubectl apply -f k8s/
