@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
@@ -12,63 +12,46 @@ function App() {
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
 
-  // 🆕 Unique session ID per user/page
-  const [sessionId] = useState(() => {
-    // Keep consistent per browser tab
-    const existing = sessionStorage.getItem("sessionId");
-    if (existing) return existing;
-    const newId = Math.random().toString(36).substring(2, 10);
-    sessionStorage.setItem("sessionId", newId);
-    return newId;
-  });
-
-
-
-  // 🧠 Connect WebSocket using SockJS + STOMP
-    const connectWebSocket = useCallback(() => {
-      const ws = new SockJS("/ws");
-      stompClient = new Client({
-        webSocketFactory: () => ws,
-        reconnectDelay: 5000,
-        onConnect: () => {
-          console.log("✅ Connected to WebSocket");
-  
-          // 🆕 Subscribe to a session-specific topic
-          const topic = `/topic/task-updates-vm/${sessionId}`;
-          console.log(`📡 Subscribing to: ${topic}`);
-          stompClient.subscribe(topic, (message) => {
-            const updatedTask = JSON.parse(message.body);
-            console.log("📩 Received task update:", updatedTask);
-  
-            setTasks((prev) => {
-              const exists = prev.find((t) => t.id === updatedTask.id);
-              if (exists) {
-                return prev.map((t) =>
-                  t.id === updatedTask.id
-                    ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
-                    : t
-                );
-              }
-              return [...prev, updatedTask];
-            });
-  
-            setLoadingId(null);
-          });
-        },
-      });
-      stompClient.activate();
-    }, [sessionId]);
-
-      useEffect(() => {
+  useEffect(() => {
+    // ✅ Only connect WebSocket, don't fetch old tasks
     connectWebSocket();
     return () => stompClient && stompClient.deactivate();
-  }, [connectWebSocket]);
+  }, []);
 
-  // ✳️ Create task: send sessionId to backend
+  const connectWebSocket = () => {
+    const ws = new SockJS("/ws");
+    stompClient = new Client({
+      webSocketFactory: () => ws,
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log("✅ Connected to WebSocket");
+        stompClient.subscribe("/topic/task-updates-vm", (message) => {
+          const updatedTask = JSON.parse(message.body);
+          console.log("📩 Received task update:", updatedTask);
+
+          setTasks((prev) => {
+            const exists = prev.find((t) => t.id === updatedTask.id);
+            if (exists) {
+              return prev.map((t) =>
+                t.id === updatedTask.id
+                  ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
+                  : t
+              );
+            }
+            return [...prev, updatedTask];
+          });
+
+          setLoadingId(null);
+        });
+      },
+    });
+    stompClient.activate();
+  };
+
   const createTask = async () => {
     if (!title.trim()) return;
     try {
-      await axios.post("/api/tasks", { title, sessionId });
+      await axios.post("/api/tasks", { title });
       setLoadingId(title);
       setTitle("");
     } catch (e) {
@@ -76,16 +59,16 @@ function App() {
     }
   };
 
-  // ♻️ Regenerate task using same sessionId
   const regenerateTask = async (taskTitle) => {
     setLoadingId(taskTitle);
     try {
-      await axios.post("/api/tasks", { title: taskTitle, sessionId });
+      await axios.post("/api/tasks", { title: taskTitle });
     } catch (e) {
       console.error("❌ Error regenerating task:", e);
     }
   };
 
+  // ✅ Delete task only from current session
   const deleteTask = (id) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };

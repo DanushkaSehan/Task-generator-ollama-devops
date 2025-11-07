@@ -141,7 +141,7 @@ public void listen(Task task) {
         task.setAiSuggestion(suggestion);
 
         if (task.getSessionId() != null) {
-                String topic = "/topic/task-updates-vm/" + task.getSessionId();
+                String topic = "/topic/task-updates-vm/";
                 messagingTemplate.convertAndSend(topic, task);
                 System.out.println("📤 Sent update to topic: " + topic);
             } else {
