@@ -139,12 +139,14 @@ public void listen(Task task) {
         System.out.println(" AI response:\n" + suggestion);
 
         task.setAiSuggestion(suggestion);
-        String sessionId = task.getSessionId();
-        if (task.getSessionId() != null && !task.getSessionId().isEmpty()) {
-    messagingTemplate.convertAndSend("/topic/task-updates-vm/" + task.getSessionId(), task);
-} else {
-    messagingTemplate.convertAndSend("/topic/task-updates-vm", task); // fallback
-}
+
+        if (task.getSessionId() != null) {
+                String topic = "/topic/task-updates-vm/" + task.getSessionId();
+                messagingTemplate.convertAndSend(topic, task);
+                System.out.println("📤 Sent update to topic: " + topic);
+            } else {
+                System.out.println("⚠️ No sessionId found, skipping WebSocket send.");
+            }
 
     } catch (Exception e) {
         e.printStackTrace();
