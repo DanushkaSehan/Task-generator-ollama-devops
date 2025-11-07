@@ -122,7 +122,7 @@ public class AiProcessorService {
 
 @KafkaListener(topics = "task-events-vm", groupId = "ai-processor-vm")
 public void listen(Task task) {
-    System.out.println(" Received task from Kafka: " + task.getTitle());
+    System.out.println("🟢 Received task from Kafka: " + task.getTitle());
 
     try {
         String prompt = """
@@ -134,24 +134,24 @@ public void listen(Task task) {
         Main Task: %s
         """.formatted(task.getTitle());
 
-        // Note: Renamed method internally to reflect Groq usage
-        String suggestion = callGroq(prompt); 
-        System.out.println(" AI response:\n" + suggestion);
+        // 🧠 Generate AI suggestion using Groq or your LLM method
+        String suggestion = callGroq(prompt);
+        System.out.println("🤖 AI response:\n" + suggestion);
 
+        // Attach the AI suggestion to the same task object
         task.setAiSuggestion(suggestion);
 
-        if (task.getSessionId() != null) {
-                String topic = "/topic/task-updates-vm/";
-                messagingTemplate.convertAndSend(topic, task);
-                System.out.println("📤 Sent update to topic: " + topic);
-            } else {
-                System.out.println("⚠️ No sessionId found, skipping WebSocket send.");
-            }
+        // ✅ Broadcast the result to all WebSocket subscribers
+        String topic = "/topic/task-updates-vm";
+        messagingTemplate.convertAndSend(topic, task);
+        System.out.println("📤 Sent update to topic: " + topic);
 
     } catch (Exception e) {
+        System.err.println("❌ Error processing task: " + e.getMessage());
         e.printStackTrace();
     }
 }
+
 
 
 private String callGroq(String prompt) throws Exception {
