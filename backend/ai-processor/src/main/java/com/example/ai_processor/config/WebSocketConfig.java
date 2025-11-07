@@ -18,10 +18,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // The frontend connects to this endpoint:  /ws
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns(
-                        "http://taskassistantgke.danushka.tech",
-                        "https://taskassistantvm.danushka.tech"
-                )
+                .setAllowedOriginPatterns("*")
                 .withSockJS(); 
     }
 }
