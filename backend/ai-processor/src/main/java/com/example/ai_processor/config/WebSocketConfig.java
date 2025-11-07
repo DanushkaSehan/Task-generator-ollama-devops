@@ -22,6 +22,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         "http://taskassistantgke.danushka.tech",
                         "https://taskassistantvm.danushka.tech"
                 )
-                .withSockJS();  // for fallback / older browsers
+                .withSockJS(); 
     }
 }

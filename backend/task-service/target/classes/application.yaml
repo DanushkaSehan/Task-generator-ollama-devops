@@ -1,5 +1,10 @@
 spring:
   kafka:
     bootstrap-servers: 34.63.78.54:9092
+
+app:
+  kafka:
+    topic: task-events-gke
+
 server:
   port: 8080
