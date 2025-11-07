@@ -3,4 +3,5 @@ com\example\ai_processor\config\WebSocketConfig.class
 com\example\ai_processor\controller\HealthController.class
 com\example\ai_processor\service\AiProcessorService.class
 com\example\ai_processor\model\Task.class
+com\example\ai_processor\config\WebConfig.class
 com\example\ai_processor\config\KafkaConsumerConfig.class

@@ -141,8 +141,8 @@ public void listen(Task task) {
         task.setAiSuggestion(suggestion);
         String sessionId = task.getSessionId();
         if (sessionId != null && !sessionId.isBlank()) {
-            messagingTemplate.convertAndSend("/topic/task-updates/" + sessionId, task);
-            System.out.println("📡 Sent update to WebSocket session " + sessionId);
+            messagingTemplate.convertAndSend("/topic/task-updates/" + task);
+            System.out.println("📡 Sent update to WebSocket session ");
         } else {
             // Optional: broadcast fallback
             messagingTemplate.convertAndSend("/topic/task-updates", task);

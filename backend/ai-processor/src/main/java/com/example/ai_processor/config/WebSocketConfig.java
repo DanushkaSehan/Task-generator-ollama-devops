@@ -14,8 +14,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker("/topic");
     }
 
-    @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
+        // The frontend connects to this endpoint:  /ws
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns(
+                        "http://taskassistantgke.danushka.tech",
+                        "https://taskassistantvm.danushka.tech"
+                )
+                .withSockJS();  // for fallback / older browsers
     }
 }
