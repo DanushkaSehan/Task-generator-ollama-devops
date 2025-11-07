@@ -18,35 +18,45 @@ function App() {
     return () => stompClient && stompClient.deactivate();
   }, []);
 
-  const connectWebSocket = () => {
-    const ws = new SockJS("http://taskassistantvmdirect.danushka.tech/ws");
-    stompClient = new Client({
-      webSocketFactory: () => ws,
-      reconnectDelay: 5000,
-      onConnect: () => {
-        console.log("✅ Connected to WebSocket");
-        stompClient.subscribe("/topic/task-updates-vm", (message) => {
-          const updatedTask = JSON.parse(message.body);
-          console.log("📩 Received task update:", updatedTask);
 
-          setTasks((prev) => {
-            const exists = prev.find((t) => t.id === updatedTask.id);
-            if (exists) {
-              return prev.map((t) =>
-                t.id === updatedTask.id
-                  ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
-                  : t
-              );
-            }
-            return [...prev, updatedTask];
-          });
+const connectWebSocket = () => {
+  // 👇 Use your backend's full public URL
+  const ws = new SockJS("/ws");
 
-          setLoadingId(null);
+  stompClient = new Client({
+    webSocketFactory: () => ws,
+    reconnectDelay: 5000,
+    debug: (str) => console.log(str), // 👈 Add for debugging
+    onConnect: () => {
+      console.log("✅ Connected to WebSocket");
+
+      // 👇 EXACT topic name — no trailing slash
+      stompClient.subscribe("/topic/task-updates-vm", (message) => {
+        const updatedTask = JSON.parse(message.body);
+        console.log("📩 Received task update:", updatedTask);
+
+        setTasks((prev) => {
+          const exists = prev.find((t) => t.id === updatedTask.id);
+          if (exists) {
+            return prev.map((t) =>
+              t.id === updatedTask.id
+                ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
+                : t
+            );
+          }
+          return [...prev, updatedTask];
         });
-      },
-    });
-    stompClient.activate();
-  };
+
+        setLoadingId(null);
+      });
+    },
+    onStompError: (frame) => {
+      console.error("❌ STOMP error:", frame);
+    },
+  });
+
+  stompClient.activate();
+};
 
   const createTask = async () => {
     if (!title.trim()) return;
