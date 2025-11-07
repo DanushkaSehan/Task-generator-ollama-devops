@@ -34,7 +34,7 @@ function App() {
           console.log("✅ Connected to WebSocket");
   
           // 🆕 Subscribe to a session-specific topic
-          const topic = `/topic/task-updates/${sessionId}`;
+          const topic = `/topic/task-updates-vm/${sessionId}`;
           console.log(`📡 Subscribing to: ${topic}`);
           stompClient.subscribe(topic, (message) => {
             const updatedTask = JSON.parse(message.body);

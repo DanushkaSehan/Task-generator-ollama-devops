@@ -141,9 +141,9 @@ public void listen(Task task) {
         task.setAiSuggestion(suggestion);
         String sessionId = task.getSessionId();
         if (task.getSessionId() != null && !task.getSessionId().isEmpty()) {
-    messagingTemplate.convertAndSend("/topic/task-updates/" + task.getSessionId(), task);
+    messagingTemplate.convertAndSend("/topic/task-updates-vm/" + task.getSessionId(), task);
 } else {
-    messagingTemplate.convertAndSend("/topic/task-updates", task); // fallback
+    messagingTemplate.convertAndSend("/topic/task-updates-vm", task); // fallback
 }
 
     } catch (Exception e) {
