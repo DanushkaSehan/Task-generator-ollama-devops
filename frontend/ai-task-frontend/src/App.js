@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
@@ -22,45 +22,47 @@ function App() {
     return newId;
   });
 
-  useEffect(() => {
-    connectWebSocket();
-    return () => stompClient && stompClient.deactivate();
-  }, []);
+
 
   // 🧠 Connect WebSocket using SockJS + STOMP
-  const connectWebSocket = () => {
-    const ws = new SockJS("/ws");
-    stompClient = new Client({
-      webSocketFactory: () => ws,
-      reconnectDelay: 5000,
-      onConnect: () => {
-        console.log("✅ Connected to WebSocket");
-
-        // 🆕 Subscribe to a session-specific topic
-        const topic = `/topic/task-updates/${sessionId}`;
-        console.log(`📡 Subscribing to: ${topic}`);
-        stompClient.subscribe(topic, (message) => {
-          const updatedTask = JSON.parse(message.body);
-          console.log("📩 Received task update:", updatedTask);
-
-          setTasks((prev) => {
-            const exists = prev.find((t) => t.id === updatedTask.id);
-            if (exists) {
-              return prev.map((t) =>
-                t.id === updatedTask.id
-                  ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
-                  : t
-              );
-            }
-            return [...prev, updatedTask];
+    const connectWebSocket = useCallback(() => {
+      const ws = new SockJS("/ws");
+      stompClient = new Client({
+        webSocketFactory: () => ws,
+        reconnectDelay: 5000,
+        onConnect: () => {
+          console.log("✅ Connected to WebSocket");
+  
+          // 🆕 Subscribe to a session-specific topic
+          const topic = `/topic/task-updates/${sessionId}`;
+          console.log(`📡 Subscribing to: ${topic}`);
+          stompClient.subscribe(topic, (message) => {
+            const updatedTask = JSON.parse(message.body);
+            console.log("📩 Received task update:", updatedTask);
+  
+            setTasks((prev) => {
+              const exists = prev.find((t) => t.id === updatedTask.id);
+              if (exists) {
+                return prev.map((t) =>
+                  t.id === updatedTask.id
+                    ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
+                    : t
+                );
+              }
+              return [...prev, updatedTask];
+            });
+  
+            setLoadingId(null);
           });
+        },
+      });
+      stompClient.activate();
+    }, [sessionId]);
 
-          setLoadingId(null);
-        });
-      },
-    });
-    stompClient.activate();
-  };
+      useEffect(() => {
+    connectWebSocket();
+    return () => stompClient && stompClient.deactivate();
+  }, [connectWebSocket]);
 
   // ✳️ Create task: send sessionId to backend
   const createTask = async () => {
