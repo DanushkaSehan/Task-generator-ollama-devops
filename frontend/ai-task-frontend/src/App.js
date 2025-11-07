@@ -19,7 +19,7 @@ function App() {
   }, []);
 
   const connectWebSocket = () => {
-    const ws = new SockJS("/ws");
+    const ws = new SockJS("http://taskassistantvmdirect.danushka.tech/ws");
     stompClient = new Client({
       webSocketFactory: () => ws,
       reconnectDelay: 5000,
