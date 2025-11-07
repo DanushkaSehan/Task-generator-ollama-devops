@@ -120,7 +120,7 @@ public class AiProcessorService {
         this.messagingTemplate = messagingTemplate;
     }
 
-@KafkaListener(topics = "task-events", groupId = "ai-processor")
+@KafkaListener(topics = "task-events-vm", groupId = "ai-processor")
 public void listen(Task task) {
     System.out.println(" Received task from Kafka: " + task.getTitle());
 
