@@ -12,12 +12,5 @@ public class Task {
     private long id;
     private String title;
     private String aiSuggestion;
-    // getter & setter
-public String getSessionId() {
-    return sessionId;
-}
 
-public void setSessionId(String sessionId) {
-    this.sessionId = sessionId;
-}
 }

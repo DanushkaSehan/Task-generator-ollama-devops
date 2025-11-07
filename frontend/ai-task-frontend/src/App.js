@@ -12,12 +12,22 @@ function App() {
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
 
+  // 🆕 Unique session ID per user/page
+  const [sessionId] = useState(() => {
+    // Keep consistent per browser tab
+    const existing = sessionStorage.getItem("sessionId");
+    if (existing) return existing;
+    const newId = Math.random().toString(36).substring(2, 10);
+    sessionStorage.setItem("sessionId", newId);
+    return newId;
+  });
+
   useEffect(() => {
-    // ✅ Only connect WebSocket, don't fetch old tasks
     connectWebSocket();
     return () => stompClient && stompClient.deactivate();
   }, []);
 
+  // 🧠 Connect WebSocket using SockJS + STOMP
   const connectWebSocket = () => {
     const ws = new SockJS("/ws");
     stompClient = new Client({
@@ -25,7 +35,11 @@ function App() {
       reconnectDelay: 5000,
       onConnect: () => {
         console.log("✅ Connected to WebSocket");
-        stompClient.subscribe("/topic/task-updates", (message) => {
+
+        // 🆕 Subscribe to a session-specific topic
+        const topic = `/topic/task-updates/${sessionId}`;
+        console.log(`📡 Subscribing to: ${topic}`);
+        stompClient.subscribe(topic, (message) => {
           const updatedTask = JSON.parse(message.body);
           console.log("📩 Received task update:", updatedTask);
 
@@ -48,10 +62,11 @@ function App() {
     stompClient.activate();
   };
 
+  // ✳️ Create task: send sessionId to backend
   const createTask = async () => {
     if (!title.trim()) return;
     try {
-      await axios.post("/api/tasks", { title });
+      await axios.post("/api/tasks", { title, sessionId });
       setLoadingId(title);
       setTitle("");
     } catch (e) {
@@ -59,16 +74,16 @@ function App() {
     }
   };
 
+  // ♻️ Regenerate task using same sessionId
   const regenerateTask = async (taskTitle) => {
     setLoadingId(taskTitle);
     try {
-      await axios.post("/api/tasks", { title: taskTitle });
+      await axios.post("/api/tasks", { title: taskTitle, sessionId });
     } catch (e) {
       console.error("❌ Error regenerating task:", e);
     }
   };
 
-  // ✅ Delete task only from current session
   const deleteTask = (id) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
