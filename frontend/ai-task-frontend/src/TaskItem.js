@@ -11,13 +11,13 @@ function TaskItem({ task, loadingId, regenerateTask, deleteTask }) {
             className="action-button regenerate-button"
             disabled={loadingId === task.title}
           >
-            🔁
+            Regenerate
           </button>
           <button
             onClick={() => deleteTask(task.id)}
             className="action-button delete-button"
           >
-            🗑️
+            Delete
           </button>
         </div>
       </div>
@@ -27,7 +27,7 @@ function TaskItem({ task, loadingId, regenerateTask, deleteTask }) {
         }`}
       >
         {loadingId === task.title
-          ? "⚙️ Generating AI plan..."
+          ? "Generating AI plan..."
           : task.aiSuggestion
           ? task.aiSuggestion.replaceAll(/(\d+\.\s)/g, "\n$1").trim()
           : "Processing AI suggestion..."}
