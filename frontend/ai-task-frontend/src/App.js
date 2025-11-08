@@ -13,28 +13,19 @@ function App() {
   const [loadingId, setLoadingId] = useState(null);
 
   useEffect(() => {
-    fetchTasks();
     connectWebSocket();
     return () => stompClient && stompClient.deactivate();
   }, []);
-
-  const fetchTasks = async () => {
-    try {
-      const res = await axios.get("/api/tasks");
-      setTasks(res.data);
-    } catch (e) {
-      console.error("❌ Error fetching tasks:", e);
-    }
-  };
 
   const connectWebSocket = () => {
     const ws = new SockJS("/ws");
     stompClient = new Client({
       webSocketFactory: () => ws,
       reconnectDelay: 5000,
+      debug: (str) => console.log(str),
       onConnect: () => {
-        console.log("✅ Connected to WebSocket");
-        stompClient.subscribe("/topic/task-updates-vm", (message) => {
+        console.log("Connected to WebSocket");
+        stompClient.subscribe("/topic/task-updates", (message) => {
           const updatedTask = JSON.parse(message.body);
           setTasks((prev) => {
             const exists = prev.find((t) => t.id === updatedTask.id);
@@ -45,11 +36,12 @@ function App() {
                   : t
               );
             }
-            return [...prev, updatedTask];
+            return [updatedTask, ...prev];
           });
           setLoadingId(null);
         });
       },
+      onStompError: (frame) => console.error("STOMP error:", frame),
     });
     stompClient.activate();
   };
@@ -79,30 +71,37 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <h1 className="main-title">🧠 AI Task Assistant</h1>
-      <div className="input-section">
-        <input
-          placeholder="Enter a task (e.g., Build RTMP server)"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="task-input"
-        />
-        <button onClick={createTask} className="add-button">
-          ➕ Add Task
-        </button>
-      </div>
-      <ul className="task-list">
-        {tasks.map((t) => (
-          <TaskItem
-            key={t.id}
-            task={t}
-            loadingId={loadingId}
-            regenerateTask={regenerateTask}
-            deleteTask={deleteTask}
+    <div className="app-wrapper">
+      <div className="main-container">
+        <h1 className="main-title">AI Task Assistant</h1>
+        <p className="subtitle">
+          Smartly organize and refine your daily tasks with AI insights.
+        </p>
+
+        <div className="input-section">
+          <input
+            placeholder="Enter a task (e.g., Deploy AI backend)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="task-input"
           />
-        ))}
-      </ul>
+          <button onClick={createTask} className="add-button">
+            Add
+          </button>
+        </div>
+
+        <ul className="task-list">
+          {tasks.map((t) => (
+            <TaskItem
+              key={t.id}
+              task={t}
+              loadingId={loadingId}
+              regenerateTask={regenerateTask}
+              deleteTask={deleteTask}
+            />
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
