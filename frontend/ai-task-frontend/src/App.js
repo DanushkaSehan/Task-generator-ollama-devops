@@ -31,7 +31,7 @@ const connectWebSocket = () => {
       console.log("✅ Connected to WebSocket");
 
       // 👇 EXACT topic name — no trailing slash
-      stompClient.subscribe("/topic/task-updates-vm", (message) => {
+      stompClient.subscribe("/topic/task-updates", (message) => {
         const updatedTask = JSON.parse(message.body);
         console.log("📩 Received task update:", updatedTask);
 

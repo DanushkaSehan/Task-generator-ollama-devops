@@ -5,4 +5,4 @@ metadata:
   namespace: ai-task
 spec:
   domains:
-    - taskassistantgke.danushka.tech
+    - taskassistantcluster.danushka.tech

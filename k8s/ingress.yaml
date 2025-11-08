@@ -1,14 +1,15 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ai-task-ingress-v2
+  name: ai-task-ingress-v4
   namespace: ai-task
   annotations:
     kubernetes.io/ingress.class: "gce"
     networking.gke.io/managed-certificates: "danushka-gke-cert"
+
 spec:
   rules:
-    - host: taskassistantgke.danushka.tech
+    - host: taskassistantcluster.danushka.tech
       http:
         paths:
           - path: /
@@ -32,3 +33,4 @@ spec:
                 name: ai-processor
                 port:
                   number: 8090
+              
