@@ -14,7 +14,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker("/topic");
         config.setApplicationDestinationPrefixes("/app");
     }
-
+    @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // The frontend connects to this endpoint:  /ws
         registry.addEndpoint("/ws")

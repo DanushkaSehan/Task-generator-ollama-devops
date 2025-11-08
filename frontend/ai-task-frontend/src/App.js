@@ -12,9 +12,11 @@ function App() {
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
 
-
+  useEffect(() => {
+    // ✅ Only connect WebSocket, don't fetch old tasks
     connectWebSocket();
-
+    return () => stompClient && stompClient.deactivate();
+  }, []);
 
 
 const connectWebSocket = () => {
