@@ -34,7 +34,7 @@ function App() {
       reconnectDelay: 5000,
       onConnect: () => {
         console.log("✅ Connected to WebSocket");
-        stompClient.subscribe("/topic/task-updates", (message) => {
+        stompClient.subscribe("/topic/task-updates-vm", (message) => {
           const updatedTask = JSON.parse(message.body);
           setTasks((prev) => {
             const exists = prev.find((t) => t.id === updatedTask.id);
