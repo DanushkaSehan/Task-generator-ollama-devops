@@ -13,20 +13,20 @@ function App() {
   const [loadingId, setLoadingId] = useState(null);
 
   useEffect(() => {
-    // ✅ Only connect WebSocket, don't fetch old tasks
+
     connectWebSocket();
     return () => stompClient && stompClient.deactivate();
   }, []);
 
 
 const connectWebSocket = () => {
-  // 👇 Use your backend's full public URL
+
   const ws = new SockJS("/ws");
 
   stompClient = new Client({
     webSocketFactory: () => ws,
     reconnectDelay: 5000,
-    debug: (str) => console.log(str), // 👈 Add for debugging
+    debug: (str) => console.log(str), 
     onConnect: () => {
       console.log("✅ Connected to WebSocket");
 
@@ -85,7 +85,7 @@ const connectWebSocket = () => {
 
   return (
     <div className="app-container">
-      <h1 className="main-title">🧠 AI Task Assistant</h1>
+      <h1 className="main-title">AI Task Assistant</h1>
 
       <div className="input-section">
         <input

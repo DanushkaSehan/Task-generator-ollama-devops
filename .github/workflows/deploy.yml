@@ -3,7 +3,7 @@ name: Build & Deploy AI Task Assistant
 on:
   push:
     branches:
-      - main
+      - gke-deployment
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -20,81 +20,81 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    steps:
-      # 1️⃣ Checkout
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # steps:
+    #   1️ Checkout
+    #   - name: Checkout repository
+    #     uses: actions/checkout@v4
 
-      # 2️⃣ Authenticate to Google Cloud
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+    #   # 2️ Authenticate to Google Cloud
+    #   - name: Authenticate to Google Cloud
+    #     uses: google-github-actions/auth@v2
+    #     with:
+    #       credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # 3️⃣ Setup gcloud CLI
-      - name: Setup gcloud CLI
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          install_components: "gke-gcloud-auth-plugin"
+    #   # 3️ Setup gcloud CLI
+    #   - name: Setup gcloud CLI
+    #     uses: google-github-actions/setup-gcloud@v2
+    #     with:
+    #       project_id: ${{ secrets.GCP_PROJECT_ID }}
+    #       install_components: "gke-gcloud-auth-plugin"
 
-      # 4️⃣ Setup Java
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+    #   # 4️ Setup Java
+    #   - name: Setup Java 17
+    #     uses: actions/setup-java@v4
+    #     with:
+    #       distribution: temurin
+    #       java-version: 17
 
-      # 5️⃣ Build Spring Boot JARs
-      - name: Build Spring Boot JARs
-        run: |
-          chmod +x backend/task-service/mvnw
-          chmod +x backend/ai-processor/mvnw
-          cd backend/task-service && ./mvnw clean package -DskipTests
-          cd ../ai-processor && ./mvnw clean package -DskipTests
-        shell: bash
+    #   # 5️ Build Spring Boot JARs
+    #   - name: Build Spring Boot JARs
+    #     run: |
+    #       chmod +x backend/task-service/mvnw
+    #       chmod +x backend/ai-processor/mvnw
+    #       cd backend/task-service && ./mvnw clean package -DskipTests
+    #       cd ../ai-processor && ./mvnw clean package -DskipTests
+    #     shell: bash
 
-      # 6️⃣ Build React Frontend
-      - name: Build React Frontend
-        run: |
-          cd frontend/ai-task-frontend
-          npm install
-          npm run build
-        shell: bash
+    #   # 6️ Build React Frontend
+    #   - name: Build React Frontend
+    #     run: |
+    #       cd frontend/ai-task-frontend
+    #       npm install
+    #       npm run build
+    #     shell: bash
 
-      # 7️⃣ Configure Docker authentication for Artifact Registry
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+    #   # 7️ Configure Docker authentication for Artifact Registry
+    #   - name: Configure Docker authentication
+    #     run: |
+    #       gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-      # 8️⃣ Build & Push Docker Images
-      - name: Build and push Docker images
-        run: |
-          echo " Building and pushing backend images..."
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
+    #   # 8️ Build & Push Docker Images
+    #   - name: Build and push Docker images
+    #     run: |
+    #       echo " Building and pushing backend images..."
+    #       docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+    #       docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
 
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
+    #       docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+    #       docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
 
-          echo " Building and pushing frontend image..."
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
+    #       echo " Building and pushing frontend image..."
+    #       docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+    #       docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
 
-      # 9️⃣ Deploy to GKE
-      - name: Get GKE credentials
-        run: |
-          gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
+    #   # 9️ Deploy to GKE
+    #   - name: Get GKE credentials
+    #     run: |
+    #       gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
 
-      - name: Deploy to GKE
-        run: |
-          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
-          kubectl apply -f k8s/
-          kubectl rollout status deployment/ai-frontend -n ai-task || true
-          kubectl rollout status deployment/task-service -n ai-task || true
-          kubectl rollout status deployment/ai-processor -n ai-task || true
+    #   - name: Deploy to GKE
+    #     run: |
+    #       sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
+    #       kubectl apply -f k8s/
+    #       kubectl rollout status deployment/ai-frontend -n ai-task || true
+    #       kubectl rollout status deployment/task-service -n ai-task || true
+    #       kubectl rollout status deployment/ai-processor -n ai-task || true
 
-      # # 🔟 Also Deploy JARs to VM 
+      # #  Also Deploy JARs to VM 
       # - name: Upload JARs to GCP VM
       #   if: success()
       #   run: |
@@ -109,11 +109,11 @@ jobs:
       #       ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
       #       --zone=$VM_ZONE --project=$PROJECT_ID
 
-      # # 11️⃣ Restart services on VM
+      # # 11 Restart services on VM
       # - name: Restart VM Services
       #   if: success()
       #   run: |
-      #     echo "🔁 Restarting Spring Boot services..."
+      #     echo " Restarting Spring Boot services..."
       #     gcloud compute ssh ${VM_USER}@${VM_NAME} \
       #       --zone=${VM_ZONE} --project=${PROJECT_ID} \
       #       --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
