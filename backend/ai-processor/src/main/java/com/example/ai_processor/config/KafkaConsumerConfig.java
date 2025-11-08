@@ -20,7 +20,7 @@ public class KafkaConsumerConfig {
     @Bean
     public ConsumerFactory<String, Task> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "34.63.78.54:9092");
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "34.60.94.240:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "ai-processor-vm");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
