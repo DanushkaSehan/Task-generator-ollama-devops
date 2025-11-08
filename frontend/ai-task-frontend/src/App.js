@@ -13,50 +13,46 @@ function App() {
   const [loadingId, setLoadingId] = useState(null);
 
   useEffect(() => {
-    // ✅ Only connect WebSocket, don't fetch old tasks
+    fetchTasks();
     connectWebSocket();
     return () => stompClient && stompClient.deactivate();
   }, []);
 
+  const fetchTasks = async () => {
+    try {
+      const res = await axios.get("/api/tasks");
+      setTasks(res.data);
+    } catch (e) {
+      console.error("❌ Error fetching tasks:", e);
+    }
+  };
 
-const connectWebSocket = () => {
-  // 👇 Use your backend's full public URL
-  const ws = new SockJS("/ws");
-
-  stompClient = new Client({
-    webSocketFactory: () => ws,
-    reconnectDelay: 5000,
-    debug: (str) => console.log(str), // 👈 Add for debugging
-    onConnect: () => {
-      console.log("✅ Connected to WebSocket");
-
-      // 👇 EXACT topic name — no trailing slash
-      stompClient.subscribe("/topic/task-updates-vm", (message) => {
-        const updatedTask = JSON.parse(message.body);
-        console.log("📩 Received task update:", updatedTask);
-
-        setTasks((prev) => {
-          const exists = prev.find((t) => t.id === updatedTask.id);
-          if (exists) {
-            return prev.map((t) =>
-              t.id === updatedTask.id
-                ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
-                : t
-            );
-          }
-          return [...prev, updatedTask];
+  const connectWebSocket = () => {
+    const ws = new SockJS("/ws");
+    stompClient = new Client({
+      webSocketFactory: () => ws,
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log("✅ Connected to WebSocket");
+        stompClient.subscribe("/topic/task-updates", (message) => {
+          const updatedTask = JSON.parse(message.body);
+          setTasks((prev) => {
+            const exists = prev.find((t) => t.id === updatedTask.id);
+            if (exists) {
+              return prev.map((t) =>
+                t.id === updatedTask.id
+                  ? { ...t, aiSuggestion: updatedTask.aiSuggestion }
+                  : t
+              );
+            }
+            return [...prev, updatedTask];
+          });
+          setLoadingId(null);
         });
-
-        setLoadingId(null);
-      });
-    },
-    onStompError: (frame) => {
-      console.error("❌ STOMP error:", frame);
-    },
-  });
-
-  stompClient.activate();
-};
+      },
+    });
+    stompClient.activate();
+  };
 
   const createTask = async () => {
     if (!title.trim()) return;
@@ -65,7 +61,7 @@ const connectWebSocket = () => {
       setLoadingId(title);
       setTitle("");
     } catch (e) {
-      console.error("❌ Error creating task:", e);
+      console.error("Error creating task:", e);
     }
   };
 
@@ -74,11 +70,10 @@ const connectWebSocket = () => {
     try {
       await axios.post("/api/tasks", { title: taskTitle });
     } catch (e) {
-      console.error("❌ Error regenerating task:", e);
+      console.error("Error regenerating task:", e);
     }
   };
 
-  // ✅ Delete task only from current session
   const deleteTask = (id) => {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
@@ -86,7 +81,6 @@ const connectWebSocket = () => {
   return (
     <div className="app-container">
       <h1 className="main-title">🧠 AI Task Assistant</h1>
-
       <div className="input-section">
         <input
           placeholder="Enter a task (e.g., Build RTMP server)"
@@ -98,7 +92,6 @@ const connectWebSocket = () => {
           ➕ Add Task
         </button>
       </div>
-
       <ul className="task-list">
         {tasks.map((t) => (
           <TaskItem
