@@ -3,7 +3,8 @@ name: 🚀 Build & Deploy AI Task Assistant (Spring Boot + React) to GKE & VM
 on:
   push:
     branches:
-      - main
+      - vm-deployment
+      # - main
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -62,10 +63,10 @@ jobs:
           npm run build
         shell: bash
 
-      # 7️⃣ Configure Docker authentication for Artifact Registry
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+      # # 7️⃣ Configure Docker authentication for Artifact Registry
+      # - name: Configure Docker authentication
+      #   run: |
+      #     gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
     #   # 8️⃣ Build & Push Docker Images
     #   - name: Build and push Docker images
