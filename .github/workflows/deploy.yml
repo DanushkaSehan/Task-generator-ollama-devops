@@ -3,7 +3,8 @@ name: 🚀 Build & Deploy AI Task Assistant (Spring Boot + React) to GKE & VM
 on:
   push:
     branches:
-      - main
+      - frontend-release
+      # - main
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
