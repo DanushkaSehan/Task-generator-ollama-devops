@@ -12,16 +12,14 @@ function App() {
   const [title, setTitle] = useState("");
   const [loadingId, setLoadingId] = useState(null);
 
-  useEffect(() => {
-    // ✅ Only connect WebSocket, don't fetch old tasks
+
     connectWebSocket();
-    return () => stompClient && stompClient.deactivate();
-  }, []);
+
 
 
 const connectWebSocket = () => {
   // 👇 Use your backend's full public URL
-  const ws = new SockJS("/ws-ai");
+  const ws = new SockJS("/ws");
 
   stompClient = new Client({
     webSocketFactory: () => ws,
