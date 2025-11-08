@@ -21,7 +21,7 @@ function App() {
 
 const connectWebSocket = () => {
   // 👇 Use your backend's full public URL
-  const ws = new SockJS("/ws");
+  const ws = new SockJS("/wsvm");
 
   stompClient = new Client({
     webSocketFactory: () => ws,
