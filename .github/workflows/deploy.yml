@@ -1,4 +1,4 @@
-name: 🚀 Build & Deploy AI Task Assistant (Spring Boot + React) to GKE & VM
+name: Build & Deploy AI Task Assistant
 
 on:
   push:
@@ -62,6 +62,16 @@ jobs:
           npm install
           npm run build
         shell: bash
+      
+      # 7️⃣ Upload Frontend Build to GCP VM (NGINX / Web Root)
+      - name: Upload React Build to GCP VM
+        if: success()
+        run: |
+          echo " Uploading React frontend build to VM..."
+          gcloud compute scp --recurse \
+            frontend/ai-task-frontend/build/* \
+            ${VM_USER}@${VM_NAME}:/var/www/html/ai-task-frontend/ \
+            --zone=$VM_ZONE --project=$PROJECT_ID
 
       # # 7️⃣ Configure Docker authentication for Artifact Registry
       # - name: Configure Docker authentication
@@ -110,6 +120,7 @@ jobs:
             ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
             --zone=$VM_ZONE --project=$PROJECT_ID
 
+              
       # 11️⃣ Restart services on VM
       - name: Restart VM Services
         if: success()
