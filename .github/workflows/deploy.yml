@@ -51,9 +51,9 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          chmod +x backend/task-service/mvnw
+          # chmod +x backend/task-service/mvnw
           chmod +x backend/ai-processor/mvnw
-          cd backend/task-service && ./mvnw clean package -DskipTests
+          # cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
         shell: bash
 
@@ -107,28 +107,28 @@ jobs:
           kubectl rollout status deployment/task-service -n ai-task || true
           kubectl rollout status deployment/ai-processor -n ai-task || true
 
-      # 🔟 Also Deploy JARs to VM 
-      - name: Upload JARs to GCP VM
-        if: success()
-        run: |
-          echo "📦 Uploading JARs to VM..."
-          # gcloud compute scp \
-          #   backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-          #   ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
-          #   --zone=$VM_ZONE --project=$PROJECT_ID
+      # # 🔟 Also Deploy JARs to VM 
+      # - name: Upload JARs to GCP VM
+      #   if: success()
+      #   run: |
+      #     echo "📦 Uploading JARs to VM..."
+      #     # gcloud compute scp \
+      #     #   backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+      #     #   ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
+      #     #   --zone=$VM_ZONE --project=$PROJECT_ID
 
-          gcloud compute scp \
-            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
-            --zone=$VM_ZONE --project=$PROJECT_ID
+      #     gcloud compute scp \
+      #       backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
+      #       ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
+      #       --zone=$VM_ZONE --project=$PROJECT_ID
           
 
               
-      # 11️⃣ Restart services on VM
-      - name: Restart VM Services
-        if: success()
-        run: |
-          echo "🔁 Restarting Spring Boot services..."
-          gcloud compute ssh ${VM_USER}@${VM_NAME} \
-            --zone=${VM_ZONE} --project=${PROJECT_ID} \
-            --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
+      # # 11️⃣ Restart services on VM
+      # - name: Restart VM Services
+      #   if: success()
+      #   run: |
+      #     echo "🔁 Restarting Spring Boot services..."
+      #     gcloud compute ssh ${VM_USER}@${VM_NAME} \
+      #       --zone=${VM_ZONE} --project=${PROJECT_ID} \
+      #       --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
