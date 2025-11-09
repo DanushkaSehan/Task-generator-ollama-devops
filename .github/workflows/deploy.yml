@@ -75,37 +75,37 @@ jobs:
       #       ${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/ \
       #       --zone=$VM_ZONE --project=$PROJECT_ID
 
-      # # 7️⃣ Configure Docker authentication for Artifact Registry
-      # - name: Configure Docker authentication
-      #   run: |
-      #     gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+      # 7️⃣ Configure Docker authentication for Artifact Registry
+      - name: Configure Docker authentication
+        run: |
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-    #   # 8️⃣ Build & Push Docker Images
-    #   - name: Build and push Docker images
-    #     run: |
-    #       echo "🧱 Building and pushing backend images..."
-    #       docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-    #       docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
+      # 8️⃣ Build & Push Docker Images
+      - name: Build and push Docker images
+        run: |
+          # echo "🧱 Building and pushing backend images..."
+          # docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+          # docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
 
-    #       docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-    #       docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
 
-    #       echo "🧱 Building and pushing frontend image..."
-    #       docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-    #       docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
+          # echo "🧱 Building and pushing frontend image..."
+          # docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+          # docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
 
-    #   # 9️⃣ Deploy to GKE
-    #   - name: Get GKE credentials
-    #     run: |
-    #       gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
+      # 9️⃣ Deploy to GKE
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
 
-    #   - name: Deploy to GKE
-    #     run: |
-    #       sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
-    #       kubectl apply -f k8s/
-    #       kubectl rollout status deployment/ai-frontend -n ai-task || true
-    #       kubectl rollout status deployment/task-service -n ai-task || true
-    #       kubectl rollout status deployment/ai-processor -n ai-task || true
+      - name: Deploy to GKE
+        run: |
+          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/ai-frontend -n ai-task || true
+          kubectl rollout status deployment/task-service -n ai-task || true
+          kubectl rollout status deployment/ai-processor -n ai-task || true
 
       # 🔟 Also Deploy JARs to VM 
       - name: Upload JARs to GCP VM
@@ -122,11 +122,6 @@ jobs:
             ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
             --zone=$VM_ZONE --project=$PROJECT_ID
           
-          # Set environment variable on VM
-          echo "🔐 Setting GROQ_API_KEY environment variable on VM..."
-          gcloud compute ssh ${VM_USER}@${VM_NAME} \
-            --zone=${VM_ZONE} --project=${PROJECT_ID} \
-            --command="echo 'GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}' | sudo tee /opt/ai-task-assistant/ai-processor/.env > /dev/null"
 
               
       # 11️⃣ Restart services on VM
