@@ -51,9 +51,9 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          # chmod +x backend/task-service/mvnw
+          chmod +x backend/task-service/mvnw
           chmod +x backend/ai-processor/mvnw
-          # cd backend/task-service && ./mvnw clean package -DskipTests
+          cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
         shell: bash
 
