@@ -5,6 +5,12 @@ frontend/ai-task-frontend/node_modules/
 frontend/ai-task-frontend/dist/
 frontend/ai-task-frontend/.env
 
+# Environment variables - NEVER commit API keys!
+.env
+.env.local
+.env.*.local
+**/.env
+
 # IDE
 .idea/
 .vscode/

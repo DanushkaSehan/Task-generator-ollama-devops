@@ -48,30 +48,32 @@ jobs:
 
       # 5️⃣ Build Spring Boot JARs
       - name: Build Spring Boot JARs
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          chmod +x backend/task-service/mvnw
+          # chmod +x backend/task-service/mvnw
           chmod +x backend/ai-processor/mvnw
-          cd backend/task-service && ./mvnw clean package -DskipTests
+          # cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
         shell: bash
 
-      # 6️⃣ Build React Frontend
-      - name: Build React Frontend
-        run: |
-          cd frontend/ai-task-frontend
-          npm install
-          npm run build
-        shell: bash
+      # # 6️⃣ Build React Frontend
+      # - name: Build React Frontend
+      #   run: |
+      #     cd frontend/ai-task-frontend
+      #     npm install
+      #     npm run build
+      #   shell: bash
       
-      # 7️⃣ Upload Frontend Build to GCP VM (NGINX / Web Root)
-      - name: Upload React Build to GCP VM
-        if: success()
-        run: |
-          echo " Uploading React frontend build to VM..."
-          gcloud compute scp --recurse \
-            frontend/ai-task-frontend/build/* \
-            ${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/ \
-            --zone=$VM_ZONE --project=$PROJECT_ID
+      # # 7️⃣ Upload Frontend Build to GCP VM (NGINX / Web Root)
+      # - name: Upload React Build to GCP VM
+      #   if: success()
+      #   run: |
+      #     echo " Uploading React frontend build to VM..."
+      #     gcloud compute scp --recurse \
+      #       frontend/ai-task-frontend/build/* \
+      #       ${VM_USER}@${VM_NAME}:/var/www/html/ai-frontend/ \
+      #       --zone=$VM_ZONE --project=$PROJECT_ID
 
       # # 7️⃣ Configure Docker authentication for Artifact Registry
       # - name: Configure Docker authentication
@@ -110,15 +112,21 @@ jobs:
         if: success()
         run: |
           echo "📦 Uploading JARs to VM..."
-          gcloud compute scp \
-            backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
-            --zone=$VM_ZONE --project=$PROJECT_ID
+          # gcloud compute scp \
+          #   backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+          #   ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
+          #   --zone=$VM_ZONE --project=$PROJECT_ID
 
           gcloud compute scp \
             backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
             ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
             --zone=$VM_ZONE --project=$PROJECT_ID
+          
+          # Set environment variable on VM
+          echo "🔐 Setting GROQ_API_KEY environment variable on VM..."
+          gcloud compute ssh ${VM_USER}@${VM_NAME} \
+            --zone=${VM_ZONE} --project=${PROJECT_ID} \
+            --command="echo 'GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}' | sudo tee /opt/ai-task-assistant/ai-processor/.env > /dev/null"
 
               
       # 11️⃣ Restart services on VM
