@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: 34.63.78.54:9092
+    bootstrap-servers: 35.202.103.172:9092
 
 server:
   port: 8090
