@@ -55,7 +55,7 @@ jobs:
           chmod +x backend/ai-processor/mvnw
           cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
-          cd backend/ai-processor && ./mvnw clean package -DskipTests
+          # cd backend/ai-processor && ./mvnw clean package -DskipTests
           
         shell: bash
 
