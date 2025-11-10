@@ -115,10 +115,10 @@ jobs:
         if: success()
         run: |
           echo "📦 Uploading JARs to VM..."
-          # gcloud compute scp \
-          #   backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-          #   ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
-          #   --zone=$VM_ZONE --project=$PROJECT_ID
+          gcloud compute scp \
+            backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
+            --zone=$VM_ZONE --project=$PROJECT_ID
 
           gcloud compute scp \
             backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
