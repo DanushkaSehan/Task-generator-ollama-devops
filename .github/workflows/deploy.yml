@@ -1,4 +1,3 @@
-
 name: Build & Deploy AI Task Assistant
 
 on:
@@ -56,7 +55,7 @@ jobs:
           chmod +x backend/ai-processor/mvnw
           cd backend/task-service && ./mvnw clean package -DskipTests
           cd ../ai-processor && ./mvnw clean package -DskipTests
-     
+          cd backend/ai-processor && ./mvnw clean package -DskipTests
           
         shell: bash
 
@@ -79,59 +78,60 @@ jobs:
       #       --zone=$VM_ZONE --project=$PROJECT_ID
 
       # 7️⃣ Configure Docker authentication for Artifact Registry
-      # - name: Configure Docker authentication
-      #   run: |
-      #     gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
-
-      # # 8️⃣ Build & Push Docker Images
-      # - name: Build and push Docker images
-      #   run: |
-      #     # echo "🧱 Building and pushing backend images..."
-      #     # docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-      #     # docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
-
-      #     docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-      #     docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
-
-      #     # echo "🧱 Building and pushing frontend image..."
-      #     # docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-      #     # docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
-
-      # # 9️⃣ Deploy to GKE
-      # - name: Get GKE credentials
-      #   run: |
-      #     gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
-
-      # - name: Deploy to GKE
-      #   run: |
-      #     sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
-      #     kubectl apply -f k8s/
-      #     kubectl rollout status deployment/ai-frontend -n ai-task || true
-      #     kubectl rollout status deployment/task-service -n ai-task || true
-      #     kubectl rollout status deployment/ai-processor -n ai-task || true
-
-      # 🔟 Also Deploy JARs to VM 
-      - name: Upload JARs to GCP VM
-        if: success()
+      - name: Configure Docker authentication
         run: |
-          echo "📦 Uploading JARs to VM..."
-          gcloud compute scp \
-            backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
-            --zone=$VM_ZONE --project=$PROJECT_ID
+          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-          gcloud compute scp \
-            backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
-            ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
-            --zone=$VM_ZONE --project=$PROJECT_ID
+      # 8️⃣ Build & Push Docker Images
+      - name: Build and push Docker images
+        run: |
+          echo "🧱 Building and pushing backend images..."
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
+
+          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
+
+          # echo "🧱 Building and pushing frontend image..."
+          # docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+          # docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
+
+      # 9️⃣ Deploy to GKE
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials $CLUSTER --zone $CLUSTER_ZONE --project $PROJECT_ID
+
+      - name: Deploy to GKE
+        run: |
+          sed -i "s|LOCATION-docker.pkg.dev/PROJECT_ID|${REGION}-docker.pkg.dev/${PROJECT_ID}|g" k8s/*.yaml
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/ai-frontend -n ai-task || true
+          kubectl rollout status deployment/task-service -n ai-task || true
+          kubectl rollout status deployment/ai-processor -n ai-task || true
+
+      # # 🔟 Also Deploy JARs to VM 
+      # - name: Upload JARs to GCP VM
+      #   if: success()
+      #   run: |
+      #     echo "📦 Uploading JARs to VM..."
+      #     # gcloud compute scp \
+      #     #   backend/task-service/target/task-service-0.0.1-SNAPSHOT.jar \
+      #     #   ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/task-service/task-service-0.0.1-SNAPSHOT.jar \
+      #     #   --zone=$VM_ZONE --project=$PROJECT_ID
+
+      #     gcloud compute scp \
+      #       backend/ai-processor/target/ai-processor-0.0.1-SNAPSHOT.jar \
+      #       ${VM_USER}@${VM_NAME}:/opt/ai-task-assistant/ai-processor/ai-processor-0.0.1-SNAPSHOT.jar \
+      #       --zone=$VM_ZONE --project=$PROJECT_ID
           
 
               
-      # 11️⃣ Restart services on VM
-      - name: Restart VM Services
-        if: success()
-        run: |
-          echo "🔁 Restarting Spring Boot services..."
-          gcloud compute ssh ${VM_USER}@${VM_NAME} \
-            --zone=${VM_ZONE} --project=${PROJECT_ID} \
-            --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
+      # # 11️⃣ Restart services on VM
+      # - name: Restart VM Services
+      #   if: success()
+      #   run: |
+      #     echo "🔁 Restarting Spring Boot services..."
+      #     gcloud compute ssh ${VM_USER}@${VM_NAME} \
+      #       --zone=${VM_ZONE} --project=${PROJECT_ID} \
+      #       --command="sudo systemctl restart task-service || true && sudo systemctl restart ai-processor || true && sudo systemctl reload nginx || true"
+
