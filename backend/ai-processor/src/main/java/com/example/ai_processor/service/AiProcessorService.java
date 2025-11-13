@@ -110,7 +110,7 @@ public class AiProcessorService {
     private final SimpMessagingTemplate messagingTemplate;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    private static final String GROQ_API_KEY = "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";
+    private static final String GROQ_API_KEY = "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";
     private static final String GROQ_MODEL = "llama-3.1-8b-instant";
     private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
 
