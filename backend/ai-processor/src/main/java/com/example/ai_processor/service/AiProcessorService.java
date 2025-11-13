@@ -120,8 +120,8 @@ public class AiProcessorService {
         this.messagingTemplate = messagingTemplate;
     }
 
-// @KafkaListener(topics = "task-events-vm", groupId = "ai-processor-vm")
-@KafkaListener(topics = "task-events", groupId = "ai-processor")
+@KafkaListener(topics = "task-events-vm", groupId = "ai-processor-vm")
+// @KafkaListener(topics = "task-events", groupId = "ai-processor")
 public void listen(Task task) {
     System.out.println("🟢 Received task from Kafka: " + task.getTitle());
 
@@ -143,7 +143,7 @@ public void listen(Task task) {
         task.setAiSuggestion(suggestion);
 
         // ✅ Broadcast the result to all WebSocket subscribers
-        String topic = "/topic/task-updates";
+        String topic = "/topic/task-updates-vm";
         messagingTemplate.convertAndSend(topic, task);
         System.out.println("📤 Sent update to topic: " + topic);
 
