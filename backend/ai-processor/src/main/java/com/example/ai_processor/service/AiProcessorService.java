@@ -96,7 +96,6 @@ import com.example.ai_processor.model.Task;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -111,9 +110,7 @@ public class AiProcessorService {
     private final SimpMessagingTemplate messagingTemplate;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    // Injected from environment / application.yaml (groq.api.key)
-    @Value("${groq.api.key:}")
-    private String groqApiKey = "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";
+    private static final String GROQ_API_KEY = "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";
     private static final String GROQ_MODEL = "llama-3.1-8b-instant";
     private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
 
@@ -126,7 +123,7 @@ public class AiProcessorService {
 @KafkaListener(topics = "task-events-vm", groupId = "ai-processor-vm")
 // @KafkaListener(topics = "task-events", groupId = "ai-processor")
 public void listen(Task task) {
-    System.out.println("🟢 Received task from Kafka: " + task.getTitle());
+    System.out.println(" Received task from Kafka: " + task.getTitle());
 
     try {
         String prompt = """
@@ -159,10 +156,6 @@ public void listen(Task task) {
 
 
 private String callGroq(String prompt) throws Exception {
-    if (groqApiKey == null || groqApiKey.isBlank()) {
-        System.err.println("Groq API key missing. Set GROQ_API_KEY env variable or groq.api.key property.");
-        return "Error: GROQ_API key not configured.";
-    }
     
     // 1. Define the Groq payload structure using a Map
     java.util.Map<String, Object> payload = java.util.Map.of(
@@ -178,11 +171,11 @@ private String callGroq(String prompt) throws Exception {
     String json = objectMapper.writeValueAsString(payload);
     
     // 3. Build the HTTP Request
-        HttpRequest request = HttpRequest.newBuilder()
+    HttpRequest request = HttpRequest.newBuilder()
             .uri(GROQ_URI)
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer " + groqApiKey) 
+            .header("Authorization", "Bearer " + GROQ_API_KEY) 
             .build();
 
     // 4. Send the request and read the full response body
