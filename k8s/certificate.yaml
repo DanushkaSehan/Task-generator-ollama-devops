@@ -1,8 +1,0 @@
-apiVersion: networking.gke.io/v1
-kind: ManagedCertificate
-metadata:
-  name: danushka-gke-cert
-  namespace: ai-task
-spec:
-  domains:
-    - taskassistantgke.danushka.tech
