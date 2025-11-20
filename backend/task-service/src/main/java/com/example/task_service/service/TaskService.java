@@ -24,7 +24,7 @@ public class TaskService {
     public Task create(String title) {
         Task task = new Task(counter.getAndIncrement(), title, "Waiting for AI...");
         tasks.add(task);
-        kafkaTemplate.send("task-events", task);
+        kafkaTemplate.send("task-events-vm", task);
         return task;
     }
 
