@@ -43,44 +43,44 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # 5️⃣ Build Spring Boot JARs
-      - name: Build Spring Boot JARs
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: |
-          chmod +x backend/task-service/mvnw
-          chmod +x backend/ai-processor/mvnw
-          cd backend/task-service && ./mvnw clean package -DskipTests
-          cd ../ai-processor && ./mvnw clean package -DskipTests
+      # # 5️⃣ Build Spring Boot JARs
+      # - name: Build Spring Boot JARs
+      #   env:
+      #     GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      #   run: |
+      #     chmod +x backend/task-service/mvnw
+      #     chmod +x backend/ai-processor/mvnw
+      #     cd backend/task-service && ./mvnw clean package -DskipTests
+      #     cd ../ai-processor && ./mvnw clean package -DskipTests
           
-        shell: bash
+      #   shell: bash
 
-      # 6️⃣ Build React Frontend
-      - name: Build React Frontend
-        run: |
-          cd frontend/ai-task-frontend
-          npm install
-          npm run build
-        shell: bash
+      # # 6️⃣ Build React Frontend
+      # - name: Build React Frontend
+      #   run: |
+      #     cd frontend/ai-task-frontend
+      #     npm install
+      #     npm run build
+      #   shell: bash
 
-      # 7️⃣ Configure Docker authentication for Artifact Registry
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+      # # 7️⃣ Configure Docker authentication for Artifact Registry
+      # - name: Configure Docker authentication
+      #   run: |
+      #     gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
 
-      # 8️⃣ Build & Push Docker Images
-      - name: Build and push Docker images
-        run: |
-          echo "🧱 Building and pushing backend images..."
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
+      # # 8️⃣ Build & Push Docker Images
+      # - name: Build and push Docker images
+      #   run: |
+      #     echo "🧱 Building and pushing backend images..."
+      #     docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG} ./backend/task-service
+      #     docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/task-service:${IMAGE_TAG}
 
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
+      #     docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG} ./backend/ai-processor
+      #     docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-processor:${IMAGE_TAG}
 
-          echo "🧱 Building and pushing frontend image..."
-          docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
-          docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
+      #     echo "🧱 Building and pushing frontend image..."
+      #     docker build -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG} ./frontend/ai-task-frontend
+      #     docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/ai-frontend:${IMAGE_TAG}
 
       # 9️⃣ Deploy to GKE
       - name: Get GKE credentials
