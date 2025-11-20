@@ -113,7 +113,7 @@ public class AiProcessorService {
 
     // Injected from environment / application.yaml (groq.api.key)
     @Value("${groq.api.key:}")
-    private String groqApiKey;
+    private String groqApiKey = "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";
     private static final String GROQ_MODEL = "llama-3.1-8b-instant";
     private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
 
