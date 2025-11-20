@@ -94,7 +94,7 @@ jobs:
           kubectl rollout status deployment/ai-frontend -n ai-task || true
           kubectl rollout status deployment/task-service -n ai-task || true
           kubectl rollout status deployment/ai-processor -n ai-task || true
-          kubectl rollout restart deployment ai-task
+
 
 
       
