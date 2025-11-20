@@ -96,6 +96,7 @@ import com.example.ai_processor.model.Task;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -110,7 +111,9 @@ public class AiProcessorService {
     private final SimpMessagingTemplate messagingTemplate;
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
-    private static final String GROQ_API_KEY = "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";
+    // Injected from environment / application.yaml (groq.api.key)
+    @Value("${groq.api.key:}")
+    private String groqApiKey;
     private static final String GROQ_MODEL = "llama-3.1-8b-instant";
     private static final URI GROQ_URI = URI.create("https://api.groq.com/openai/v1/chat/completions");
 
@@ -135,20 +138,20 @@ public void listen(Task task) {
         Main Task: %s
         """.formatted(task.getTitle());
 
-        // 🧠 Generate AI suggestion using Groq or your LLM method
+        //  Generate AI suggestion using Groq or your LLM method
         String suggestion = callGroq(prompt);
-        System.out.println("🤖 AI response:\n" + suggestion);
+        System.out.println(" AI response:\n" + suggestion);
 
         // Attach the AI suggestion to the same task object
         task.setAiSuggestion(suggestion);
 
-        // ✅ Broadcast the result to all WebSocket subscribers
+        //  Broadcast the result to all WebSocket subscribers
         String topic = "/topic/task-updates-vm";
         messagingTemplate.convertAndSend(topic, task);
-        System.out.println("📤 Sent update to topic: " + topic);
+        System.out.println(" Sent update to topic: " + topic);
 
     } catch (Exception e) {
-        System.err.println("❌ Error processing task: " + e.getMessage());
+        System.err.println(" Error processing task: " + e.getMessage());
         e.printStackTrace();
     }
 }
@@ -156,6 +159,10 @@ public void listen(Task task) {
 
 
 private String callGroq(String prompt) throws Exception {
+    if (groqApiKey == null || groqApiKey.isBlank()) {
+        System.err.println("Groq API key missing. Set GROQ_API_KEY env variable or groq.api.key property.");
+        return "Error: GROQ_API key not configured.";
+    }
     
     // 1. Define the Groq payload structure using a Map
     java.util.Map<String, Object> payload = java.util.Map.of(
@@ -171,11 +178,11 @@ private String callGroq(String prompt) throws Exception {
     String json = objectMapper.writeValueAsString(payload);
     
     // 3. Build the HTTP Request
-    HttpRequest request = HttpRequest.newBuilder()
+        HttpRequest request = HttpRequest.newBuilder()
             .uri(GROQ_URI)
             .POST(HttpRequest.BodyPublishers.ofString(json))
             .header("Content-Type", "application/json")
-            .header("Authorization", "Bearer " + GROQ_API_KEY) 
+            .header("Authorization", "Bearer " + groqApiKey) 
             .build();
 
     // 4. Send the request and read the full response body
