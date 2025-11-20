@@ -1,14 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ai-task-ingress
+  name: ai-task-ingress-v1
   namespace: ai-task
   annotations:
     kubernetes.io/ingress.class: "gce"
-    networking.gke.io/managed-certificates: "danushka-gke-cert"
+    networking.gke.io/managed-certificates: ""
 spec:
   rules:
-    - host: taskassistantgke.danushka.tech
+    - host: taskassistantcluster.danushka.tech
       http:
         paths:
           - path: /
